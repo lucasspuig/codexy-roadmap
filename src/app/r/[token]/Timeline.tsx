@@ -175,7 +175,7 @@ export function Timeline({ token, initial }: Props) {
   void now;
 
   return (
-    <div className="mx-auto w-full max-w-[760px] px-4 pb-20 pt-6 sm:px-7 sm:pt-14 sm:pb-24">
+    <div className="mx-auto w-full max-w-full px-4 pb-20 pt-6 sm:max-w-[720px] sm:px-6 sm:pt-12 sm:pb-24 lg:max-w-[760px] lg:px-7 lg:pt-14">
       {/* ─────────── Hero ─────────── */}
       <header className="mb-12 sm:mb-14">
         <div className="mb-6 flex items-center gap-2.5 animate-fade-in" style={{ opacity: 0 }}>
@@ -233,7 +233,7 @@ export function Timeline({ token, initial }: Props) {
             className="mb-4 grad-text"
             style={{
               fontFamily: "var(--ff-sans)",
-              fontSize: "clamp(40px, 7vw, 64px)",
+              fontSize: "clamp(28px, 7vw, 64px)",
               fontWeight: 700,
               letterSpacing: "-0.035em",
               lineHeight: 1.02,
@@ -689,7 +689,7 @@ function MiniStat({
     tone === "warn" ? "#b45309" : "var(--color-pub-text)";
   return (
     <div
-      className="rounded-2xl border p-4 sm:min-w-[150px]"
+      className="min-w-0 rounded-2xl border p-4 sm:min-w-[140px]"
       style={{
         background: "var(--color-pub-surface)",
         borderColor: "var(--color-pub-border)",

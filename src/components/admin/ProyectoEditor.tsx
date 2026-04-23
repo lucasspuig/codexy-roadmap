@@ -806,33 +806,37 @@ function PublicLinkCard({
           {activo ? "Activo" : "Desactivado"}
         </span>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <code className="flex-1 min-w-0 text-[12px] text-[var(--color-info)] bg-[var(--color-s2)] border border-[var(--color-b1)] rounded-[7px] px-3 py-2 font-mono break-all">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-2">
+        <code className="flex-1 min-w-0 text-[12px] text-[var(--color-info)] bg-[var(--color-s2)] border border-[var(--color-b1)] rounded-[7px] px-3 py-2 font-mono break-all leading-[1.45]">
           {url}
         </code>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)] hover:bg-[var(--color-s2)] transition-all"
-          aria-label="Copiar link"
-        >
-          <Copy size={13} /> Copiar
-        </button>
-        <button
-          type="button"
-          onClick={() => onToggleActivo(!activo)}
-          className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)] hover:bg-[var(--color-s2)] transition-all"
-        >
-          {activo ? <X size={13} /> : <Check size={13} />}
-          {activo ? "Desactivar" : "Activar"}
-        </button>
-        <button
-          type="button"
-          onClick={onRegenerate}
-          className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)] hover:bg-[var(--color-s2)] transition-all"
-        >
-          <RefreshCcw size={13} /> Regenerar
-        </button>
+        <div className="grid grid-cols-3 gap-2 md:flex md:grid-cols-none md:gap-2">
+          <button
+            type="button"
+            onClick={onCopy}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)] hover:bg-[var(--color-s2)] transition-all md:h-9"
+            aria-label="Copiar link"
+          >
+            <Copy size={13} /> Copiar
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleActivo(!activo)}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)] hover:bg-[var(--color-s2)] transition-all md:h-9"
+            aria-label={activo ? "Desactivar link" : "Activar link"}
+          >
+            {activo ? <X size={13} /> : <Check size={13} />}
+            <span>{activo ? "Desactivar" : "Activar"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onRegenerate}
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)] hover:bg-[var(--color-s2)] transition-all md:h-9"
+            aria-label="Regenerar link"
+          >
+            <RefreshCcw size={13} /> Regenerar
+          </button>
+        </div>
       </div>
       <div className="flex items-center gap-3 mt-2.5 text-[11px] text-[var(--color-t3)]">
         {token.access_count > 0 ? (

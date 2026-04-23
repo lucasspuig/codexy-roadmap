@@ -74,7 +74,7 @@ export function Dialog({
       }}
     >
       <div
-        className="fixed inset-0 flex items-center justify-center p-5 pointer-events-none"
+        className="fixed inset-0 flex items-end justify-center p-3 pointer-events-none sm:items-center sm:p-5"
         aria-hidden="true"
       >
         <div
@@ -83,7 +83,7 @@ export function Dialog({
           className="bg-[var(--color-s1)] border border-[var(--color-b1)] rounded-[14px] w-full pointer-events-auto shadow-2xl animate-fade-in"
           style={{ maxWidth }}
         >
-          <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
+          <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 sm:px-6 sm:pt-5">
             <div>
               <h3 className="text-[17px] font-semibold text-[var(--color-t1)]">
                 {title}
