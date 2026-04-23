@@ -23,8 +23,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       robots: { index: false, follow: false },
     };
   }
-  // Evitamos bumpear el contador desde metadata — lo hacemos solo en el render de la página.
-  const data = await loadPublicRoadmap(token, { touch: false }).catch(() => null);
+  const data = await loadPublicRoadmap(token).catch(() => null);
   const nombre = data?.cliente?.nombre ?? "cliente";
   return {
     title: `Plan de implementación · ${nombre}`,

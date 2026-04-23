@@ -1,7 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Hourglass, Printer, Circle, WifiOff } from "lucide-react";
+import {
+  ArrowUpRight,
+  Calendar,
+  Check,
+  CheckCircle2,
+  Circle,
+  Hourglass,
+  Printer,
+  Sparkles,
+  Target,
+  WifiOff,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { cn, formatDate, relativeTime } from "@/lib/utils";
@@ -40,7 +52,6 @@ export function Timeline({ token, initial }: Props) {
           headers: { Accept: "application/json" },
         });
         if (!res.ok) {
-          // 404 / 429 / 500 — no spameamos toasts; contamos para fallback offline.
           failureCountRef.current += 1;
           if (failureCountRef.current >= 2) setOffline(true);
           return false;
@@ -50,7 +61,6 @@ export function Timeline({ token, initial }: Props) {
         setOffline(false);
         setData((prev) => (shallowEqualPayload(prev, next) ? prev : next));
 
-        // Detectar fases recién completadas y celebrarlas.
         const nextDone = new Set(
           next.fases.filter((f) => f.estado === "done").map((f) => f.id),
         );
@@ -61,7 +71,7 @@ export function Timeline({ token, initial }: Props) {
         if (justCompleted.length > 0) {
           for (const f of justCompleted) {
             toast.success(`Fase completada: ${f.titulo}`, {
-              description: `¡Avanzamos un paso más en tu implementación!`,
+              description: "¡Avanzamos un paso más en tu implementación!",
               duration: 6_000,
             });
           }
@@ -78,7 +88,6 @@ export function Timeline({ token, initial }: Props) {
     [token],
   );
 
-  // Loop de polling con backoff suave en errores consecutivos.
   useEffect(() => {
     let stopped = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -86,7 +95,6 @@ export function Timeline({ token, initial }: Props) {
 
     const tick = async () => {
       if (stopped) return;
-      // Pausamos si la pestaña está oculta — ahorra requests y batería.
       if (document.visibilityState !== "visible") {
         timer = setTimeout(tick, 2_000);
         return;
@@ -103,7 +111,6 @@ export function Timeline({ token, initial }: Props) {
     timer = setTimeout(tick, POLL_INTERVAL_MS);
 
     const onFocus = () => {
-      // Al volver al tab, refrescamos inmediatamente.
       if (timer) clearTimeout(timer);
       tick();
     };
@@ -117,7 +124,6 @@ export function Timeline({ token, initial }: Props) {
     };
   }, [poll]);
 
-  // Tick cada 30s para refrescar los "hace X min" sin requests extra.
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(id);
@@ -130,96 +136,136 @@ export function Timeline({ token, initial }: Props) {
     const done = fases.filter((f) => f.estado === "done").length;
     const active = fases.find((f) => f.estado === "active");
     const pct = total === 0 ? 0 : Math.round(((done + (active ? 0.5 : 0)) / total) * 100);
+    const itemsTotal = fases.reduce((acc, f) => acc + f.items.length, 0);
+    const itemsDone = fases.reduce(
+      (acc, f) => acc + f.items.filter((i) => i.completado).length,
+      0,
+    );
+    const daysSinceStart = proyecto.fecha_inicio
+      ? Math.max(
+          0,
+          Math.floor(
+            (Date.now() - new Date(proyecto.fecha_inicio).getTime()) / 86_400_000,
+          ),
+        )
+      : null;
+    const daysToEnd = proyecto.fecha_estimada_fin
+      ? Math.floor(
+          (new Date(proyecto.fecha_estimada_fin).getTime() - Date.now()) / 86_400_000,
+        )
+      : null;
     return {
       total,
       done,
       active,
       pct,
       activeIndex: active ? fases.findIndex((f) => f.id === active.id) + 1 : null,
+      itemsTotal,
+      itemsDone,
+      daysSinceStart,
+      daysToEnd,
+      isComplete: total > 0 && done === total,
     };
-  }, [fases]);
+  }, [fases, proyecto.fecha_inicio, proyecto.fecha_estimada_fin]);
 
   const onPrint = () => {
     if (typeof window !== "undefined") window.print();
   };
 
-  // `now` se usa implícitamente en relativeTime; forzamos re-render al tick.
   void now;
 
   return (
-    <div className="mx-auto w-full max-w-[720px] px-5 pb-20 pt-8 sm:px-6 sm:pt-14">
-      {/* Hero */}
-      <header className="mb-10 sm:mb-12">
-        <div className="mb-5 flex items-center gap-2.5">
+    <div className="mx-auto w-full max-w-[760px] px-5 pb-24 pt-8 sm:px-7 sm:pt-14">
+      {/* ─────────── Hero ─────────── */}
+      <header className="mb-12 sm:mb-14">
+        <div className="mb-6 flex items-center gap-2.5 animate-fade-in" style={{ opacity: 0 }}>
           <div
-            className="flex h-7 w-7 items-center justify-center rounded-lg"
+            className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
             style={{ background: "var(--color-pub-accent)" }}
             aria-hidden
           >
-            <svg viewBox="0 0 16 16" width={13} height={13} style={{ fill: "#fff" }}>
+            <svg viewBox="0 0 16 16" width={14} height={14} style={{ fill: "#fff" }}>
               <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" />
             </svg>
           </div>
+          <div className="flex flex-col">
+            <span
+              className="text-[13px] font-semibold leading-tight"
+              style={{ color: "var(--color-pub-text)" }}
+            >
+              Codexy
+            </span>
+            <span
+              className="text-[10.5px] font-medium leading-tight tracking-[0.04em]"
+              style={{ color: "var(--color-pub-text3)" }}
+            >
+              Sistemas inteligentes para clínicas
+            </span>
+          </div>
+          <span className="mx-2 h-4 w-px" style={{ background: "var(--color-pub-border)" }} aria-hidden />
           <span
-            className="text-[13px] font-medium"
-            style={{ color: "var(--color-pub-text2)", letterSpacing: "0.03em" }}
+            className="truncate text-[12.5px]"
+            style={{ color: "var(--color-pub-text2)" }}
           >
-            Codexy
-          </span>
-          <span style={{ color: "var(--color-pub-border)" }} aria-hidden>
-            ·
-          </span>
-          <span
-            className="truncate text-[13px] font-medium"
-            style={{ color: "var(--color-pub-text3)" }}
-          >
-            {cliente.nombre}
-            {cliente.empresa ? ` — ${cliente.empresa}` : ""}
+            <span style={{ color: "var(--color-pub-text3)" }}>Para</span>{" "}
+            <span className="font-medium" style={{ color: "var(--color-pub-text)" }}>
+              {cliente.nombre}
+            </span>
+            {cliente.empresa ? (
+              <span style={{ color: "var(--color-pub-text3)" }}> · {cliente.empresa}</span>
+            ) : null}
           </span>
         </div>
 
-        <h1
-          className="mb-3.5 font-normal leading-[1.15]"
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "clamp(30px, 5.5vw, 44px)",
-            color: "var(--color-pub-text)",
-            letterSpacing: "-0.01em",
-          }}
-        >
-          {proyecto.nombre || "Plan de implementación"}
-        </h1>
-        <p
-          className="max-w-[540px] text-[15px] leading-[1.65]"
-          style={{ color: "var(--color-pub-text2)" }}
-        >
-          {proyecto.subtitulo ||
-            "Seguimiento de las fases de puesta en marcha de tu plataforma."}
-        </p>
+        <div className="animate-fade-in" style={{ opacity: 0, animationDelay: "120ms" }}>
+          <h1
+            className="mb-4 font-normal"
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "clamp(34px, 6vw, 52px)",
+              color: "var(--color-pub-text)",
+              letterSpacing: "-0.015em",
+              lineHeight: 1.08,
+            }}
+          >
+            {proyecto.nombre || "Plan de implementación"}
+          </h1>
+          <p
+            className="max-w-[580px] text-[15.5px] leading-[1.7]"
+            style={{ color: "var(--color-pub-text2)" }}
+          >
+            {proyecto.subtitulo ||
+              "Seguimiento en tiempo real de las fases de puesta en marcha de tu plataforma con agente de inteligencia artificial."}
+          </p>
+        </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2.5">
-          <Chip>
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full animate-pulse-soft"
-              style={{ background: "var(--color-pub-accent-m)" }}
-              aria-hidden
-            />
-            <span>Actualizado {relativeTime(ultima_actualizacion)}</span>
-          </Chip>
-          <Chip>
-            {summary.activeIndex
-              ? `Fase actual: ${summary.activeIndex} de ${summary.total}`
-              : summary.done === summary.total && summary.total > 0
-                ? "Todas las fases completadas"
-                : `${summary.done}/${summary.total} completadas`}
-          </Chip>
+        <div
+          className="mt-6 flex flex-wrap items-center gap-2 animate-fade-in"
+          style={{ opacity: 0, animationDelay: "220ms" }}
+        >
+          <LiveChip label="En vivo" sublabel={relativeTime(ultima_actualizacion)} />
+          {summary.activeIndex ? (
+            <Chip icon={<Target size={12} aria-hidden />}>
+              Fase {summary.activeIndex} de {summary.total}
+            </Chip>
+          ) : summary.isComplete ? (
+            <Chip icon={<CheckCircle2 size={12} aria-hidden />} variant="success">
+              Proyecto completado
+            </Chip>
+          ) : null}
           {proyecto.fecha_estimada_fin ? (
-            <Chip>Entrega estimada: {formatDate(proyecto.fecha_estimada_fin)}</Chip>
+            <Chip icon={<Calendar size={12} aria-hidden />}>
+              {summary.daysToEnd !== null && summary.daysToEnd > 0
+                ? `${summary.daysToEnd} días restantes`
+                : summary.daysToEnd !== null && summary.daysToEnd <= 0
+                  ? "Finalizando"
+                  : `Entrega ${formatDate(proyecto.fecha_estimada_fin)}`}
+            </Chip>
           ) : null}
           <button
             type="button"
             onClick={onPrint}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-[5px] text-xs transition hover:brightness-[1.03] print:hidden"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-[6px] text-xs transition hover:brightness-[1.03] print:hidden"
             style={{
               background: "var(--color-pub-surface)",
               borderColor: "var(--color-pub-border)",
@@ -227,7 +273,7 @@ export function Timeline({ token, initial }: Props) {
             }}
             aria-label="Descargar o imprimir"
           >
-            <Printer size={13} aria-hidden />
+            <Printer size={12} aria-hidden />
             <span>PDF</span>
           </button>
         </div>
@@ -244,166 +290,567 @@ export function Timeline({ token, initial }: Props) {
             }}
           >
             <WifiOff size={13} aria-hidden />
-            <span>Reintentando conexión...</span>
+            <span>Reintentando conexión…</span>
           </div>
         ) : null}
       </header>
 
-      {/* Progress bar */}
+      {/* ─────────── Progress dashboard ─────────── */}
       <section
-        className="mb-9 flex items-center gap-5 rounded-xl border px-6 py-5"
-        style={{
-          background: "var(--color-pub-surface)",
-          borderColor: "var(--color-pub-border)",
-        }}
-        aria-label="Progreso general del proyecto"
+        className="mb-10 grid grid-cols-1 gap-3 animate-fade-in sm:grid-cols-[1fr_auto] sm:gap-4"
+        style={{ opacity: 0, animationDelay: "320ms" }}
+        aria-label="Resumen del proyecto"
       >
-        <span
-          className="whitespace-nowrap text-[13px]"
-          style={{ color: "var(--color-pub-text2)" }}
-        >
-          Progreso general
-        </span>
         <div
-          className="relative flex-1 overflow-hidden rounded-full"
-          style={{ background: "var(--color-pub-border)", height: 5 }}
-        >
-          <div
-            className="h-full rounded-full"
-            style={{
-              background: "var(--color-pub-accent)",
-              width: `${summary.pct}%`,
-              transition: "width 1.2s cubic-bezier(.22,1,.36,1)",
-            }}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={summary.pct}
-          />
-        </div>
-        <span
-          className="min-w-[42px] text-right text-base font-medium tabular-nums"
-          style={{ color: "var(--color-pub-accent)" }}
-        >
-          {summary.pct}%
-        </span>
-      </section>
-
-      {/* Timeline */}
-      <section className="relative" aria-label="Línea de tiempo del proyecto">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute top-6 bottom-6 w-[1.5px] rounded-sm"
+          className="relative overflow-hidden rounded-2xl border p-6 sm:p-7"
           style={{
-            left: 20,
             background:
-              "linear-gradient(to bottom, var(--color-pub-accent-m), var(--color-pub-border) 50%)",
-          }}
-        />
-        {fases.length === 0 ? (
-          <EmptyState />
-        ) : (
-          fases.map((fase, idx) => (
-            <PhaseCard
-              key={fase.id}
-              fase={fase}
-              index={idx}
-              totalPhases={fases.length}
-            />
-          ))
-        )}
-      </section>
-
-      {/* Eventos recientes (si hay) */}
-      {eventos.length > 0 ? (
-        <section
-          className="mt-10 rounded-xl border p-5"
-          style={{
-            background: "var(--color-pub-surface)",
+              "linear-gradient(135deg, var(--color-pub-surface) 0%, var(--color-pub-accent-l) 140%)",
             borderColor: "var(--color-pub-border)",
           }}
         >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p
+                className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: "var(--color-pub-accent)" }}
+              >
+                Progreso general
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="tabular-nums"
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontSize: 44,
+                    color: "var(--color-pub-text)",
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1,
+                  }}
+                >
+                  {summary.pct}
+                </span>
+                <span
+                  className="text-xl font-medium"
+                  style={{ color: "var(--color-pub-accent-m)" }}
+                >
+                  %
+                </span>
+              </div>
+              <p
+                className="mt-2 text-[12.5px] leading-snug"
+                style={{ color: "var(--color-pub-text2)" }}
+              >
+                {summary.done} de {summary.total} fases completadas
+                {summary.itemsTotal > 0 ? (
+                  <>
+                    {" · "}
+                    {summary.itemsDone}/{summary.itemsTotal} tareas
+                  </>
+                ) : null}
+              </p>
+            </div>
+            <ProgressRing pct={summary.pct} />
+          </div>
+          <div
+            className="mt-5 h-1.5 w-full overflow-hidden rounded-full"
+            style={{ background: "rgba(26, 107, 74, 0.12)" }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, var(--color-pub-accent-m), var(--color-pub-accent))",
+                width: `${summary.pct}%`,
+                transition: "width 1.6s cubic-bezier(.22,1,.36,1)",
+              }}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={summary.pct}
+            />
+          </div>
+        </div>
+
+        {(summary.daysSinceStart !== null || proyecto.fecha_estimada_fin) && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-1 sm:gap-3">
+            {summary.daysSinceStart !== null ? (
+              <MiniStat
+                label="Días activos"
+                value={summary.daysSinceStart.toString()}
+                hint="desde el arranque"
+              />
+            ) : null}
+            {summary.daysToEnd !== null ? (
+              <MiniStat
+                label={summary.daysToEnd >= 0 ? "Días restantes" : "Pasado ETA"}
+                value={Math.abs(summary.daysToEnd).toString()}
+                hint={
+                  summary.daysToEnd >= 0
+                    ? "hasta la entrega estimada"
+                    : "de la fecha estimada"
+                }
+                tone={summary.daysToEnd < 0 ? "warn" : "neutral"}
+              />
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      {/* ─────────── Active phase spotlight ─────────── */}
+      {summary.active ? (
+        <section
+          className="mb-10 animate-fade-in"
+          style={{ opacity: 0, animationDelay: "420ms" }}
+          aria-label="Fase actual"
+        >
+          <ActiveSpotlight fase={summary.active} index={summary.activeIndex ?? 0} />
+        </section>
+      ) : null}
+
+      {/* ─────────── Timeline ─────────── */}
+      <section className="relative" aria-label="Línea de tiempo del proyecto">
+        <div className="mb-5 flex items-center gap-2">
           <h2
-            className="mb-4 text-[11px] font-medium uppercase tracking-[0.08em]"
+            className="text-[13px] font-semibold uppercase tracking-[0.1em]"
             style={{ color: "var(--color-pub-text3)" }}
           >
-            Últimas novedades
+            Hoja de ruta
           </h2>
-          <ol className="space-y-3">
-            {eventos.slice(0, 6).map((ev) => (
-              <li key={ev.id} className="flex items-start gap-3 text-[13px]">
-                <span
-                  className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                  style={{ background: "var(--color-pub-accent-m)" }}
-                  aria-hidden
-                />
-                <div>
-                  <p style={{ color: "var(--color-pub-text)" }}>
-                    {ev.mensaje || labelFromTipo(ev.tipo)}
-                  </p>
-                  <p
-                    className="mt-0.5 text-[11.5px]"
-                    style={{ color: "var(--color-pub-text3)" }}
-                  >
-                    {relativeTime(ev.created_at)}
-                  </p>
-                </div>
-              </li>
+          <span
+            className="h-px flex-1"
+            style={{ background: "var(--color-pub-border)" }}
+            aria-hidden
+          />
+        </div>
+        <div className="relative">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute w-[2px] rounded-sm"
+            style={{
+              left: 21,
+              top: 24,
+              bottom: 24,
+              background:
+                "linear-gradient(to bottom, var(--color-pub-accent-m) 0%, var(--color-pub-accent) 20%, var(--color-pub-border) 65%)",
+            }}
+          />
+          {fases.length === 0 ? (
+            <EmptyState />
+          ) : (
+            fases.map((fase, idx) => (
+              <PhaseCard
+                key={fase.id}
+                fase={fase}
+                index={idx}
+                totalPhases={fases.length}
+                isLast={idx === fases.length - 1}
+              />
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* ─────────── Events feed ─────────── */}
+      {eventos.length > 0 ? (
+        <section
+          className="mt-14 animate-fade-in"
+          style={{ opacity: 0, animationDelay: "600ms" }}
+        >
+          <div className="mb-5 flex items-center gap-2">
+            <h2
+              className="text-[13px] font-semibold uppercase tracking-[0.1em]"
+              style={{ color: "var(--color-pub-text3)" }}
+            >
+              Últimas novedades
+            </h2>
+            <span
+              className="h-px flex-1"
+              style={{ background: "var(--color-pub-border)" }}
+              aria-hidden
+            />
+          </div>
+          <ol
+            className="divide-y rounded-2xl border"
+            style={{
+              background: "var(--color-pub-surface)",
+              borderColor: "var(--color-pub-border)",
+              /* @ts-expect-error CSS var for divider */
+              "--tw-divide-opacity": "1",
+              borderTopColor: "var(--color-pub-border)",
+            } as React.CSSProperties}
+          >
+            {eventos.slice(0, 8).map((ev) => (
+              <EventRow key={ev.id} ev={ev} />
             ))}
           </ol>
         </section>
       ) : null}
 
-      {/* Footer */}
+      {/* ─────────── Footer ─────────── */}
       <footer
-        className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6"
-        style={{ borderColor: "var(--color-pub-border)" }}
+        className="mt-16 animate-fade-in"
+        style={{ opacity: 0, animationDelay: "700ms" }}
       >
-        <p className="text-xs" style={{ color: "var(--color-pub-text3)" }}>
-          <strong
-            className="font-medium"
-            style={{ color: "var(--color-pub-text2)" }}
-          >
-            Codexy
-          </strong>{" "}
-          · Sistemas inteligentes para clínicas
-        </p>
-        <p className="text-xs" style={{ color: "var(--color-pub-text3)" }}>
-          Documento de seguimiento · Confidencial
-        </p>
+        <div
+          className="rounded-2xl border p-6 sm:p-7"
+          style={{
+            background: "var(--color-pub-surface)",
+            borderColor: "var(--color-pub-border)",
+          }}
+        >
+          <div className="flex items-start gap-4">
+            <div
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+              style={{ background: "var(--color-pub-accent)" }}
+              aria-hidden
+            >
+              <Sparkles size={18} style={{ color: "#fff" }} aria-hidden />
+            </div>
+            <div className="flex-1">
+              <p
+                className="mb-1.5"
+                style={{
+                  fontFamily: "var(--font-serif)",
+                  fontSize: 18,
+                  color: "var(--color-pub-text)",
+                  letterSpacing: "-0.005em",
+                }}
+              >
+                Tu proyecto es prioridad para nosotros
+              </p>
+              <p
+                className="text-[13px] leading-[1.65]"
+                style={{ color: "var(--color-pub-text2)" }}
+              >
+                Este documento se actualiza automáticamente a medida que avanzamos.
+                Ante cualquier consulta, estamos disponibles para acompañarte en
+                cada paso de la implementación.
+              </p>
+              <a
+                href="mailto:contact@codexyoficial.com"
+                className="mt-3 inline-flex items-center gap-1 text-[13px] font-medium transition hover:underline"
+                style={{ color: "var(--color-pub-accent)" }}
+              >
+                contact@codexyoficial.com
+                <ArrowUpRight size={13} aria-hidden />
+              </a>
+            </div>
+          </div>
+        </div>
+        <div
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 text-[11.5px]"
+          style={{ color: "var(--color-pub-text3)" }}
+        >
+          <p>
+            <span
+              className="font-medium"
+              style={{ color: "var(--color-pub-text2)" }}
+            >
+              Codexy
+            </span>{" "}
+            · Documento de seguimiento
+          </p>
+          <p>Confidencial · Uso exclusivo del cliente</p>
+        </div>
       </footer>
     </div>
   );
 }
 
-/* ───────────── Subcomponentes ───────────── */
+/* ═══════════════════════════════════════════════
+   Subcomponentes
+   ═══════════════════════════════════════════════ */
 
-function Chip({ children }: { children: React.ReactNode }) {
+function LiveChip({ label, sublabel }: { label: string; sublabel: string }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-[5px] text-xs"
-      style={{
-        background: "var(--color-pub-surface)",
-        borderColor: "var(--color-pub-border)",
-        color: "var(--color-pub-text3)",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div
-      className="rounded-xl border px-6 py-12 text-center text-sm"
+      className="inline-flex items-center gap-2 rounded-full border px-3 py-[6px] text-xs"
       style={{
         background: "var(--color-pub-surface)",
         borderColor: "var(--color-pub-border)",
         color: "var(--color-pub-text2)",
       }}
     >
-      Todavía no hay fases cargadas. Pronto verás aquí el plan detallado.
+      <span className="relative flex h-2 w-2 items-center justify-center">
+        <span
+          className="absolute h-2 w-2 rounded-full animate-pulse-soft"
+          style={{ background: "var(--color-pub-accent-m)" }}
+          aria-hidden
+        />
+        <span
+          className="relative h-2 w-2 rounded-full"
+          style={{ background: "var(--color-pub-accent)" }}
+          aria-hidden
+        />
+      </span>
+      <span className="font-medium" style={{ color: "var(--color-pub-accent)" }}>
+        {label}
+      </span>
+      <span style={{ color: "var(--color-pub-border)" }} aria-hidden>·</span>
+      <span style={{ color: "var(--color-pub-text3)" }}>{sublabel}</span>
+    </span>
+  );
+}
+
+function Chip({
+  children,
+  icon,
+  variant = "neutral",
+}: {
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  variant?: "neutral" | "success";
+}) {
+  const styles: React.CSSProperties =
+    variant === "success"
+      ? {
+          background: "var(--color-pub-accent-l)",
+          borderColor: "var(--color-pub-accent-m)",
+          color: "var(--color-pub-accent)",
+        }
+      : {
+          background: "var(--color-pub-surface)",
+          borderColor: "var(--color-pub-border)",
+          color: "var(--color-pub-text2)",
+        };
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-[6px] text-xs font-medium"
+      style={styles}
+    >
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+function ProgressRing({ pct }: { pct: number }) {
+  const size = 64;
+  const stroke = 5;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - pct / 100);
+  return (
+    <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="rotate-[-90deg]" aria-hidden>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="var(--color-pub-border)"
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="var(--color-pub-accent)"
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        {pct === 100 ? (
+          <CheckCircle2
+            size={22}
+            style={{ color: "var(--color-pub-accent)" }}
+            strokeWidth={2}
+            aria-hidden
+          />
+        ) : (
+          <Zap size={20} style={{ color: "var(--color-pub-accent-m)" }} strokeWidth={2} aria-hidden />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  hint,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: "neutral" | "warn";
+}) {
+  const valueColor =
+    tone === "warn" ? "#b45309" : "var(--color-pub-text)";
+  return (
+    <div
+      className="rounded-2xl border p-4 sm:min-w-[150px]"
+      style={{
+        background: "var(--color-pub-surface)",
+        borderColor: "var(--color-pub-border)",
+      }}
+    >
+      <p
+        className="text-[10.5px] font-semibold uppercase tracking-[0.08em]"
+        style={{ color: "var(--color-pub-text3)" }}
+      >
+        {label}
+      </p>
+      <p
+        className="mt-1.5 tabular-nums"
+        style={{
+          fontFamily: "var(--font-serif)",
+          fontSize: 28,
+          color: valueColor,
+          lineHeight: 1,
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {value}
+      </p>
+      <p
+        className="mt-1.5 text-[11px] leading-snug"
+        style={{ color: "var(--color-pub-text3)" }}
+      >
+        {hint}
+      </p>
+    </div>
+  );
+}
+
+function ActiveSpotlight({
+  fase,
+  index,
+}: {
+  fase: PublicPayload["fases"][number];
+  index: number;
+}) {
+  const itemsDone = fase.items.filter((i) => i.completado).length;
+  const itemsTotal = fase.items.length;
+  const facePct = itemsTotal === 0 ? 0 : Math.round((itemsDone / itemsTotal) * 100);
+  return (
+    <div
+      className="relative overflow-hidden rounded-2xl border p-6 sm:p-7"
+      style={{
+        background: "var(--color-pub-surface)",
+        borderColor: "rgba(29, 95, 166, 0.28)",
+        boxShadow:
+          "0 0 0 4px rgba(29,95,166,0.05), 0 8px 30px -12px rgba(29,95,166,0.18)",
+      }}
+    >
+      <div
+        className="absolute right-[-40px] top-[-40px] h-[140px] w-[140px] rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(29,95,166,0.12) 0%, transparent 65%)",
+        }}
+        aria-hidden
+      />
+      <div className="relative flex items-start gap-4">
+        <div
+          className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl"
+          style={{
+            background: "var(--color-pub-info-l)",
+            border: "1.5px solid var(--color-pub-info)",
+            color: "var(--color-pub-info)",
+          }}
+          aria-hidden
+        >
+          <Hourglass size={20} strokeWidth={1.8} className="animate-pulse-soft" />
+        </div>
+        <div className="flex-1">
+          <div className="mb-1 flex items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-[10.5px] font-semibold uppercase tracking-[0.07em]"
+              style={{
+                background: "var(--color-pub-info-l)",
+                color: "var(--color-pub-info)",
+              }}
+            >
+              <Target size={10} strokeWidth={2.5} aria-hidden />
+              En curso ahora
+            </span>
+            <span
+              className="text-[11px] font-medium"
+              style={{ color: "var(--color-pub-text3)" }}
+            >
+              Fase {index}
+            </span>
+          </div>
+          <h3
+            className="mb-2"
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: 22,
+              color: "var(--color-pub-text)",
+              letterSpacing: "-0.01em",
+              lineHeight: 1.25,
+            }}
+          >
+            {fase.titulo}
+          </h3>
+          <p
+            className="text-[14px] leading-[1.65]"
+            style={{ color: "var(--color-pub-text2)" }}
+          >
+            {fase.descripcion}
+          </p>
+          {itemsTotal > 0 ? (
+            <div className="mt-4 flex items-center gap-3">
+              <div
+                className="flex-1 overflow-hidden rounded-full"
+                style={{ background: "rgba(29, 95, 166, 0.1)", height: 4 }}
+              >
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    background: "var(--color-pub-info)",
+                    width: `${facePct}%`,
+                    transition: "width 1s ease-out",
+                  }}
+                />
+              </div>
+              <span
+                className="text-[11.5px] font-medium tabular-nums"
+                style={{ color: "var(--color-pub-info)" }}
+              >
+                {itemsDone}/{itemsTotal}
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div
+      className="rounded-2xl border px-6 py-14 text-center text-sm"
+      style={{
+        background: "var(--color-pub-surface)",
+        borderColor: "var(--color-pub-border)",
+        color: "var(--color-pub-text2)",
+      }}
+    >
+      <Calendar
+        size={28}
+        className="mx-auto mb-3 opacity-40"
+        style={{ color: "var(--color-pub-text3)" }}
+        aria-hidden
+      />
+      <p style={{ color: "var(--color-pub-text2)" }}>
+        Todavía no hay fases cargadas.
+      </p>
+      <p
+        className="mt-1 text-[12.5px]"
+        style={{ color: "var(--color-pub-text3)" }}
+      >
+        Pronto verás aquí el plan detallado de tu implementación.
+      </p>
     </div>
   );
 }
@@ -412,22 +859,23 @@ type PhaseCardProps = {
   fase: PublicPayload["fases"][number];
   index: number;
   totalPhases: number;
+  isLast: boolean;
 };
 
-function PhaseCard({ fase, index }: PhaseCardProps) {
+function PhaseCard({ fase, index, isLast }: PhaseCardProps) {
   const estado = fase.estado;
   const indicatorStyles: Record<FaseEstado, React.CSSProperties> = {
     done: {
-      background: "var(--color-pub-accent-l)",
-      border: "1.5px solid var(--color-pub-accent-m)",
-      color: "var(--color-pub-accent)",
-      fontWeight: 500,
+      background: "var(--color-pub-accent)",
+      border: "2.5px solid var(--color-pub-bg)",
+      color: "#fff",
+      boxShadow: "0 0 0 1.5px var(--color-pub-accent)",
     },
     active: {
       background: "var(--color-pub-info-l)",
-      border: "1.5px solid var(--color-pub-info)",
+      border: "2px solid var(--color-pub-info)",
       color: "var(--color-pub-info)",
-      boxShadow: "0 0 0 5px rgba(29,95,166,.07)",
+      boxShadow: "0 0 0 5px rgba(29,95,166,0.1)",
     },
     pending: {
       background: "var(--color-pub-surface)",
@@ -439,25 +887,27 @@ function PhaseCard({ fase, index }: PhaseCardProps) {
   const cardStyle: React.CSSProperties = {
     background: "var(--color-pub-surface)",
     borderColor:
-      estado === "active" ? "rgba(29,95,166,.3)" : "var(--color-pub-border)",
+      estado === "active"
+        ? "rgba(29,95,166,0.22)"
+        : "var(--color-pub-border)",
     boxShadow:
       estado === "active"
-        ? "0 0 0 3px rgba(29,95,166,.05), 0 4px 16px rgba(0,0,0,.04)"
+        ? "0 4px 20px -8px rgba(29,95,166,0.12)"
         : undefined,
   };
 
-  const animationDelay = `${80 + index * 80}ms`;
+  const animationDelay = `${120 + index * 90}ms`;
 
   return (
     <article
-      className="relative mb-3.5 flex gap-5 animate-fade-in"
-      style={{
-        animationDelay,
-        opacity: 0,
-      }}
+      className={cn(
+        "relative flex gap-5 animate-fade-in",
+        isLast ? "mb-0" : "mb-3.5",
+      )}
+      style={{ animationDelay, opacity: 0 }}
     >
       <div
-        className="relative z-10 mt-[3px] flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-[15px]"
+        className="relative z-10 mt-[3px] flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center rounded-full text-[15px]"
         style={indicatorStyles[estado]}
         aria-hidden
       >
@@ -465,32 +915,33 @@ function PhaseCard({ fase, index }: PhaseCardProps) {
       </div>
       <div
         className={cn(
-          "flex-1 rounded-xl border px-6 py-5 transition",
-          estado === "done" && "opacity-[0.78]",
+          "group flex-1 rounded-2xl border px-5 py-5 transition-all duration-300 sm:px-6",
+          estado === "done" && "opacity-[0.82] hover:opacity-100",
+          estado === "pending" && "hover:brightness-[1.02]",
         )}
         style={cardStyle}
       >
-        <div className="mb-1.5 flex items-center justify-between gap-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
           <span
-            className="text-[11px] font-medium uppercase tracking-[0.06em]"
+            className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em]"
             style={{ color: "var(--color-pub-text3)" }}
           >
             Fase {fase.orden}
-            {estado === "active" ? " · En curso" : ""}
           </span>
           <PublicBadge estado={estado} />
         </div>
-        <h2
-          className="mb-2 font-normal leading-[1.3]"
+        <h3
+          className="mb-2 font-normal"
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: 19,
+            fontSize: 20,
             color: "var(--color-pub-text)",
-            letterSpacing: "-0.005em",
+            letterSpacing: "-0.008em",
+            lineHeight: 1.28,
           }}
         >
           {fase.titulo}
-        </h2>
+        </h3>
         <p
           className="text-[13.5px] leading-[1.65]"
           style={{ color: "var(--color-pub-text2)" }}
@@ -499,7 +950,7 @@ function PhaseCard({ fase, index }: PhaseCardProps) {
         </p>
         {fase.items.length > 0 ? (
           <ul
-            className="mt-4 space-y-2 border-t pt-4"
+            className="mt-4 space-y-[9px] border-t pt-4"
             style={{ borderColor: "var(--color-pub-border)" }}
           >
             {fase.items.map((item) => (
@@ -509,9 +960,10 @@ function PhaseCard({ fase, index }: PhaseCardProps) {
         ) : null}
         {estado === "done" && fase.completada_at ? (
           <p
-            className="mt-3 text-[11.5px]"
-            style={{ color: "var(--color-pub-text3)" }}
+            className="mt-3 flex items-center gap-1.5 text-[11.5px]"
+            style={{ color: "var(--color-pub-accent-m)" }}
           >
+            <CheckCircle2 size={11} aria-hidden />
             Completada el {formatDate(fase.completada_at)}
           </p>
         ) : null}
@@ -521,14 +973,13 @@ function PhaseCard({ fase, index }: PhaseCardProps) {
 }
 
 function PhaseIndicator({ fase }: { fase: PublicPayload["fases"][number] }) {
-  if (fase.estado === "done") return <Check size={15} strokeWidth={2.5} aria-hidden />;
+  if (fase.estado === "done") return <Check size={18} strokeWidth={3} aria-hidden />;
   if (fase.estado === "active") {
-    // Usamos el ícono definido en la fase (emoji o texto corto) si existe.
-    if (fase.icono) return <span>{fase.icono}</span>;
-    return <Hourglass size={15} strokeWidth={2} aria-hidden />;
+    if (fase.icono) return <span className="text-[16px]">{fase.icono}</span>;
+    return <Hourglass size={16} strokeWidth={2} aria-hidden />;
   }
   return (
-    <span className="text-[13px] font-medium tabular-nums">{fase.orden}</span>
+    <span className="text-[13px] font-semibold tabular-nums">{fase.orden}</span>
   );
 }
 
@@ -537,15 +988,17 @@ function PublicBadge({ estado }: { estado: FaseEstado }) {
     done: {
       background: "var(--color-pub-accent-l)",
       color: "var(--color-pub-accent)",
+      border: "1px solid rgba(26,107,74,0.15)",
     },
     active: {
       background: "var(--color-pub-info-l)",
       color: "var(--color-pub-info)",
+      border: "1px solid rgba(29,95,166,0.2)",
     },
     pending: {
       background: "var(--color-pub-bg)",
       color: "var(--color-pub-text3)",
-      border: "0.5px solid var(--color-pub-border)",
+      border: "1px solid var(--color-pub-border)",
     },
   };
   const dotColor: Record<FaseEstado, string> = {
@@ -555,11 +1008,14 @@ function PublicBadge({ estado }: { estado: FaseEstado }) {
   };
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-[11px] font-medium"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-[10.5px] font-semibold"
       style={styles[estado]}
     >
       <span
-        className="h-1.5 w-1.5 rounded-full"
+        className={cn(
+          "h-1.5 w-1.5 rounded-full",
+          estado === "active" && "animate-pulse-soft",
+        )}
         style={{ background: dotColor[estado] }}
         aria-hidden
       />
@@ -576,43 +1032,124 @@ function ItemRow({
   phaseEstado: FaseEstado;
 }) {
   const done = item.completado;
-  const icon = done ? (
-    <Check size={12} strokeWidth={2.5} aria-hidden />
+  const iconBgStyle: React.CSSProperties = done
+    ? {
+        background: "var(--color-pub-accent-l)",
+        border: "1px solid rgba(26,107,74,0.2)",
+        color: "var(--color-pub-accent)",
+      }
+    : phaseEstado === "active"
+      ? {
+          background: "var(--color-pub-info-l)",
+          border: "1px solid rgba(29,95,166,0.15)",
+          color: "var(--color-pub-info)",
+        }
+      : {
+          background: "var(--color-pub-bg)",
+          border: "1px solid var(--color-pub-border)",
+          color: "var(--color-pub-text3)",
+        };
+  const iconEl = done ? (
+    <Check size={11} strokeWidth={3} aria-hidden />
   ) : phaseEstado === "active" ? (
-    <Hourglass size={12} strokeWidth={1.75} aria-hidden />
+    <Hourglass size={10} strokeWidth={2} aria-hidden />
   ) : (
-    <Circle size={10} strokeWidth={1.5} aria-hidden />
+    <Circle size={8} strokeWidth={2} aria-hidden />
   );
   return (
     <li
-      className="flex items-start gap-2.5 text-[13px] leading-[1.5]"
+      className="flex items-start gap-3 text-[13px] leading-[1.55]"
       style={{
         color: done ? "var(--color-pub-text3)" : "var(--color-pub-text2)",
-        textDecoration: done ? "line-through" : undefined,
-        textDecorationColor: done ? "var(--color-pub-border)" : undefined,
       }}
     >
       <span
-        className="mt-[3px] flex-shrink-0"
-        style={{ opacity: done ? 0.65 : 0.7 }}
+        className="mt-[1px] flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-md"
+        style={iconBgStyle}
       >
-        {icon}
+        {iconEl}
       </span>
-      <span>{item.texto}</span>
+      <span
+        style={{
+          textDecoration: done ? "line-through" : undefined,
+          textDecorationColor: done ? "var(--color-pub-border)" : undefined,
+          textDecorationThickness: "1px",
+        }}
+      >
+        {item.texto}
+      </span>
     </li>
   );
 }
 
-/* ───────────── Helpers ───────────── */
+function EventRow({ ev }: { ev: PublicPayload["eventos"][number] }) {
+  const { Icon, color } = eventVisuals(ev.tipo);
+  return (
+    <li
+      className="flex items-start gap-3 px-5 py-3.5 text-[13px]"
+      style={{ borderColor: "var(--color-pub-border)" }}
+    >
+      <span
+        className="mt-[2px] flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+        style={{
+          background:
+            color === "accent" ? "var(--color-pub-accent-l)" : "var(--color-pub-info-l)",
+          color:
+            color === "accent" ? "var(--color-pub-accent)" : "var(--color-pub-info)",
+        }}
+        aria-hidden
+      >
+        <Icon size={13} strokeWidth={2.25} />
+      </span>
+      <div className="flex-1">
+        <p style={{ color: "var(--color-pub-text)" }}>
+          {ev.mensaje || labelFromTipo(ev.tipo)}
+        </p>
+        <p
+          className="mt-0.5 text-[11.5px]"
+          style={{ color: "var(--color-pub-text3)" }}
+        >
+          {relativeTime(ev.created_at)}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════ */
+
+function eventVisuals(tipo: string): {
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  color: "accent" | "info";
+} {
+  switch (tipo) {
+    case "fase_completada":
+      return { Icon: CheckCircle2, color: "accent" };
+    case "fase_activada":
+    case "fase_iniciada":
+      return { Icon: Target, color: "info" };
+    case "item_completado":
+      return { Icon: Check, color: "accent" };
+    case "roadmap_creado":
+      return { Icon: Sparkles, color: "accent" };
+    default:
+      return { Icon: Circle, color: "info" };
+  }
+}
 
 function labelFromTipo(tipo: string): string {
   switch (tipo) {
     case "fase_completada":
       return "Fase completada";
     case "fase_iniciada":
+    case "fase_activada":
       return "Nueva fase iniciada";
     case "item_completado":
       return "Tarea completada";
+    case "roadmap_creado":
+      return "Proyecto iniciado";
     case "proyecto_actualizado":
       return "Proyecto actualizado";
     default:
@@ -620,7 +1157,6 @@ function labelFromTipo(tipo: string): string {
   }
 }
 
-/** Comparación superficial del payload para evitar re-renders innecesarios. */
 function shallowEqualPayload(a: PublicPayload, b: PublicPayload): boolean {
   if (a.ultima_actualizacion !== b.ultima_actualizacion) return false;
   if (a.fases.length !== b.fases.length) return false;
