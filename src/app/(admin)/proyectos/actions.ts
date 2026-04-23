@@ -508,3 +508,206 @@ export async function toggleTokenActivo(
   revalidatePath(`/proyectos/${row.proyecto_id}`);
   return { ok: true, data: null };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Editar datos del cliente
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function updateCliente(input: {
+  cliente_id: string;
+  nombre: string;
+  empresa?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  rubro?: string | null;
+}): Promise<ActionResult<null>> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return guard;
+
+  const nombre = input.nombre.trim();
+  if (!nombre) return { ok: false, error: "El nombre es obligatorio" };
+  if (nombre.length > 120) return { ok: false, error: "El nombre es demasiado largo" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("clientes")
+    .update({
+      nombre,
+      empresa: (input.empresa ?? null) || null,
+      email: (input.email ?? null) || null,
+      telefono: (input.telefono ?? null) || null,
+      rubro: (input.rubro ?? null) || null,
+    })
+    .eq("id", input.cliente_id);
+  if (error) return { ok: false, error: error.message };
+
+  // Buscar proyecto asociado para revalidar su página (si existe).
+  const { data: proy } = await supabase
+    .from("roadmap_proyectos")
+    .select("id")
+    .eq("cliente_id", input.cliente_id)
+    .maybeSingle<{ id: string }>();
+  if (proy?.id) revalidatePath(`/proyectos/${proy.id}`);
+  revalidatePath("/dashboard");
+  return { ok: true, data: null };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Branding: upload de logo + update de paleta
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ALLOWED_LOGO_MIME = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/svg+xml",
+]);
+const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB
+
+function isHex(v: unknown): v is string {
+  return typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v);
+}
+
+function sanitizeColors(raw: unknown): RoadmapProyecto["brand_colors"] {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const out: RoadmapProyecto["brand_colors"] = {};
+  for (const key of ["primary", "accent", "bg", "text"] as const) {
+    const v = r[key];
+    if (isHex(v)) out![key] = v;
+  }
+  return Object.keys(out!).length > 0 ? out : null;
+}
+
+export async function updateBranding(input: {
+  proyecto_id: string;
+  colors?: unknown;
+  logo_url?: string | null;
+}): Promise<ActionResult<null>> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return guard;
+
+  const patch: { brand_colors?: RoadmapProyecto["brand_colors"]; brand_logo_url?: string | null } =
+    {};
+  if ("colors" in input) patch.brand_colors = sanitizeColors(input.colors);
+  if ("logo_url" in input) {
+    const logoUrl = input.logo_url;
+    if (logoUrl !== null && logoUrl !== undefined && typeof logoUrl !== "string") {
+      return { ok: false, error: "URL de logo inválida" };
+    }
+    patch.brand_logo_url = logoUrl || null;
+  }
+  if (Object.keys(patch).length === 0) {
+    return { ok: false, error: "Nada para actualizar" };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("roadmap_proyectos")
+    .update(patch)
+    .eq("id", input.proyecto_id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/proyectos/${input.proyecto_id}`);
+  return { ok: true, data: null };
+}
+
+/**
+ * Sube un logo al bucket `roadmap-branding` y retorna la URL pública.
+ * Usa service-role para bypasear políticas de storage (defense in depth aparte del auth check).
+ */
+export async function uploadBrandLogo(formData: FormData): Promise<
+  ActionResult<{ url: string; path: string }>
+> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return guard;
+
+  const file = formData.get("file");
+  const proyectoId = formData.get("proyecto_id");
+  if (!(file instanceof File)) return { ok: false, error: "Archivo no recibido" };
+  if (typeof proyectoId !== "string" || proyectoId.length < 10) {
+    return { ok: false, error: "proyecto_id inválido" };
+  }
+  if (!ALLOWED_LOGO_MIME.has(file.type)) {
+    return { ok: false, error: "Formato no permitido. Usá PNG, JPG, WEBP o SVG." };
+  }
+  if (file.size > MAX_LOGO_BYTES) {
+    return { ok: false, error: "El logo supera 2 MB" };
+  }
+
+  const ext =
+    file.type === "image/svg+xml"
+      ? "svg"
+      : file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+          ? "webp"
+          : "jpg";
+  const path = `${proyectoId}/${Date.now()}.${ext}`;
+
+  const admin = createAdminClient();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error: upErr } = await admin.storage
+    .from("roadmap-branding")
+    .upload(path, buffer, {
+      contentType: file.type,
+      cacheControl: "3600",
+      upsert: false,
+    });
+  if (upErr) return { ok: false, error: upErr.message };
+
+  const { data: pub } = admin.storage.from("roadmap-branding").getPublicUrl(path);
+  const url = pub.publicUrl;
+
+  // Borrar logos anteriores de este proyecto (mantener storage limpio).
+  const { data: list } = await admin.storage
+    .from("roadmap-branding")
+    .list(proyectoId, { limit: 100 });
+  if (list && list.length > 1) {
+    const current = path.split("/").pop();
+    const toDelete = list
+      .filter((f) => f.name !== current)
+      .map((f) => `${proyectoId}/${f.name}`);
+    if (toDelete.length > 0) {
+      await admin.storage.from("roadmap-branding").remove(toDelete);
+    }
+  }
+
+  // Actualizar proyecto con la nueva URL.
+  const supabase = await createClient();
+  const { error: updErr } = await supabase
+    .from("roadmap_proyectos")
+    .update({ brand_logo_url: url })
+    .eq("id", proyectoId);
+  if (updErr) return { ok: false, error: updErr.message };
+
+  revalidatePath(`/proyectos/${proyectoId}`);
+  return { ok: true, data: { url, path } };
+}
+
+export async function removeBrandLogo(input: {
+  proyecto_id: string;
+}): Promise<ActionResult<null>> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return guard;
+
+  const admin = createAdminClient();
+  const { data: list } = await admin.storage
+    .from("roadmap-branding")
+    .list(input.proyecto_id, { limit: 100 });
+  if (list && list.length > 0) {
+    await admin.storage
+      .from("roadmap-branding")
+      .remove(list.map((f) => `${input.proyecto_id}/${f.name}`));
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("roadmap_proyectos")
+    .update({ brand_logo_url: null })
+    .eq("id", input.proyecto_id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/proyectos/${input.proyecto_id}`);
+  return { ok: true, data: null };
+}

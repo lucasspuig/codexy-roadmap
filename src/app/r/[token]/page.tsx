@@ -47,23 +47,57 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function PublicRoadmapPage({ params }: PageProps) {
   const { token } = await params;
 
-  // Guard rápido: formato inválido → 404 sin tocar la DB.
   if (!TOKEN_RE.test(token)) notFound();
 
   const data = await loadPublicRoadmap(token);
   if (!data) notFound();
 
+  // Branding del cliente: si existen colores personalizados, overrideamos CSS vars.
+  // Caemos a defaults (paleta warm Codexy) cuando no hay branding.
+  const brand = data.branding?.colors ?? null;
+  const brandStyle: React.CSSProperties = {
+    background: "var(--color-pub-bg)",
+    color: "var(--color-pub-text)",
+    minHeight: "100vh",
+    fontFamily: "var(--font-sans)",
+  };
+  const brandVars = brand
+    ? ({
+        ...(brand.bg ? { "--color-pub-bg": brand.bg } : {}),
+        ...(brand.text ? { "--color-pub-text": brand.text } : {}),
+        ...(brand.primary
+          ? {
+              "--color-pub-info": brand.primary,
+              "--color-pub-info-l": hexToTint(brand.primary, 0.08),
+            }
+          : {}),
+        ...(brand.accent
+          ? {
+              "--color-pub-accent": brand.accent,
+              "--color-pub-accent-m": brand.accent,
+              "--color-pub-accent-l": hexToTint(brand.accent, 0.1),
+            }
+          : {}),
+      } as React.CSSProperties)
+    : {};
+
   return (
     <div
       className="public-view-wrap print-page"
-      style={{
-        background: "var(--color-pub-bg)",
-        color: "var(--color-pub-text)",
-        minHeight: "100vh",
-        fontFamily: "var(--font-sans)",
-      }}
+      style={{ ...brandStyle, ...brandVars }}
     >
       <Timeline token={token} initial={data} />
     </div>
   );
+}
+
+/** Convierte un hex a rgba con la opacidad dada. Util para generar tonos suaves. */
+function hexToTint(hex: string, alpha: number): string {
+  const m = hex.replace("#", "");
+  if (m.length !== 6) return hex;
+  const r = parseInt(m.slice(0, 2), 16);
+  const g = parseInt(m.slice(2, 4), 16);
+  const b = parseInt(m.slice(4, 6), 16);
+  if ([r, g, b].some((n) => Number.isNaN(n))) return hex;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

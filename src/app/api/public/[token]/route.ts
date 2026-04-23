@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 import type {
+  BrandColors,
   Cliente,
   RoadmapEvento,
   RoadmapFase,
@@ -43,6 +44,10 @@ export type PublicPayload = {
     RoadmapProyecto,
     "nombre" | "subtitulo" | "fecha_inicio" | "fecha_estimada_fin" | "estado"
   >;
+  branding: {
+    logo_url: string | null;
+    colors: BrandColors | null;
+  };
   fases: Array<
     Pick<
       RoadmapFase,
@@ -131,6 +136,7 @@ export async function loadPublicRoadmap(token: string): Promise<PublicPayload | 
       fecha_estimada_fin: string | null;
       updated_at: string;
     };
+    branding: { logo_url: string | null; colors: BrandColors | null };
     fases: Array<{
       id: string;
       orden: number;
@@ -166,6 +172,10 @@ export async function loadPublicRoadmap(token: string): Promise<PublicPayload | 
       fecha_inicio: payload.proyecto.fecha_inicio,
       fecha_estimada_fin: payload.proyecto.fecha_estimada_fin,
       estado: payload.proyecto.estado,
+    },
+    branding: {
+      logo_url: payload.branding?.logo_url ?? null,
+      colors: payload.branding?.colors ?? null,
     },
     fases: payload.fases.map((f) => ({
       id: f.id,

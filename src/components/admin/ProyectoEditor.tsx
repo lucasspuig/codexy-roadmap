@@ -12,14 +12,20 @@ import {
 } from "react";
 import {
   ArrowLeft,
+  Building2,
   ChevronDown,
   ChevronUp,
   Copy,
   ExternalLink,
   Link as LinkIcon,
+  Mail,
+  Pencil,
+  Phone,
   Plus,
   RefreshCcw,
+  Tag,
   Trash2,
+  User,
   Check,
   X,
   Loader2,
@@ -29,6 +35,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/Input";
+import { BrandingSection } from "@/components/admin/BrandingSection";
+import { ClientEditDialog } from "@/components/admin/ClientEditDialog";
 import { ConfirmDialog } from "@/components/admin/Dialog";
 import { ProgressBar } from "@/components/admin/ProgressBar";
 import { createClient } from "@/lib/supabase/client";
@@ -132,6 +140,7 @@ export function ProyectoEditor({
   const [deletingFaseId, setDeletingFaseId] = useState<string | null>(null);
   const [deletingProyecto, setDeletingProyecto] = useState(false);
   const [regenConfirm, setRegenConfirm] = useState(false);
+  const [editingCliente, setEditingCliente] = useState(false);
 
   // ─── Realtime ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -548,6 +557,15 @@ export function ProyectoEditor({
           ) : null}
         </div>
         <div className="flex items-center gap-2">
+          {cliente ? (
+            <Button
+              variant="secondary"
+              onClick={() => setEditingCliente(true)}
+            >
+              <Pencil size={13} />
+              Editar datos
+            </Button>
+          ) : null}
           {publicUrl && token?.activo ? (
             <Button
               variant="secondary"
@@ -571,6 +589,14 @@ export function ProyectoEditor({
             onRegenerate={() => setRegenConfirm(true)}
             onToggleActivo={doToggleToken}
           />
+
+          {/* Datos del cliente */}
+          {cliente ? (
+            <ClienteCard
+              cliente={cliente}
+              onEdit={() => setEditingCliente(true)}
+            />
+          ) : null}
 
           {/* Progreso */}
           <div className="mt-4 mb-5 rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-4">
@@ -628,6 +654,15 @@ export function ProyectoEditor({
               <Plus size={14} />
               Agregar fase
             </button>
+          </div>
+
+          {/* Personalización del cliente */}
+          <div className="mt-6">
+            <BrandingSection
+              proyectoId={proyecto.id}
+              initialLogoUrl={proyecto.brand_logo_url}
+              initialColors={proyecto.brand_colors}
+            />
           </div>
         </div>
 
@@ -704,6 +739,14 @@ export function ProyectoEditor({
         confirmLabel="Regenerar"
         variant="primary"
       />
+      {cliente ? (
+        <ClientEditDialog
+          open={editingCliente}
+          onClose={() => setEditingCliente(false)}
+          cliente={cliente}
+          onSaved={() => router.refresh()}
+        />
+      ) : null}
     </div>
   );
 }
@@ -800,6 +843,79 @@ function PublicLinkCard({
         {token.last_accessed_at ? (
           <span>· última visita {relativeTime(token.last_accessed_at)}</span>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ClienteCard({
+  cliente,
+  onEdit,
+}: {
+  cliente: Cliente;
+  onEdit: () => void;
+}) {
+  const hasAnyContact =
+    !!cliente.email || !!cliente.telefono || !!cliente.rubro || !!cliente.empresa;
+  return (
+    <div className="mt-4 rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 h-9 w-9 rounded-full bg-[var(--color-s3)] border border-[var(--color-b1)] flex items-center justify-center text-[var(--color-t2)]">
+          <User size={14} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] font-semibold text-[var(--color-t1)] truncate">
+              {cliente.nombre}
+            </span>
+            {cliente.empresa ? (
+              <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-t3)]">
+                <Building2 size={10} />
+                {cliente.empresa}
+              </span>
+            ) : null}
+          </div>
+          {hasAnyContact ? (
+            <div className="mt-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px] text-[var(--color-t3)]">
+              {cliente.email ? (
+                <a
+                  href={`mailto:${cliente.email}`}
+                  className="inline-flex items-center gap-1 hover:text-[var(--color-info)] transition-colors"
+                >
+                  <Mail size={10} />
+                  {cliente.email}
+                </a>
+              ) : null}
+              {cliente.telefono ? (
+                <a
+                  href={`tel:${cliente.telefono.replace(/\s+/g, "")}`}
+                  className="inline-flex items-center gap-1 hover:text-[var(--color-info)] transition-colors"
+                >
+                  <Phone size={10} />
+                  {cliente.telefono}
+                </a>
+              ) : null}
+              {cliente.rubro ? (
+                <span className="inline-flex items-center gap-1">
+                  <Tag size={10} />
+                  {cliente.rubro}
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-1 text-[11px] text-[var(--color-t3)]">
+              Sin datos de contacto cargados.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)] hover:bg-[var(--color-s2)] transition-all flex-shrink-0"
+        >
+          <Pencil size={12} />
+          Editar datos
+        </button>
       </div>
     </div>
   );

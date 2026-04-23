@@ -6,6 +6,13 @@
 export type FaseEstado = "pending" | "active" | "done";
 export type ProyectoEstado = "activo" | "pausado" | "completado" | "cancelado";
 
+export type BrandColors = {
+  primary?: string; // color principal (títulos, CTA)
+  accent?: string;  // color de acento (fases done, progress)
+  bg?: string;      // fondo de la página pública
+  text?: string;    // texto principal
+};
+
 export type RoadmapProyecto = {
   id: string;
   cliente_id: string;
@@ -16,6 +23,8 @@ export type RoadmapProyecto = {
   fecha_estimada_fin: string | null;
   pm_id: string | null;
   notas_internas: string | null;
+  brand_logo_url: string | null;
+  brand_colors: BrandColors | null;
   created_at: string;
   updated_at: string;
 };

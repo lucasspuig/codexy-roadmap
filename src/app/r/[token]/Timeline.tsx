@@ -179,41 +179,51 @@ export function Timeline({ token, initial }: Props) {
       {/* ─────────── Hero ─────────── */}
       <header className="mb-12 sm:mb-14">
         <div className="mb-6 flex items-center gap-2.5 animate-fade-in" style={{ opacity: 0 }}>
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
-            style={{ background: "var(--color-pub-accent)" }}
-            aria-hidden
-          >
-            <svg viewBox="0 0 16 16" width={14} height={14} style={{ fill: "#fff" }}>
-              <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" />
-            </svg>
-          </div>
+          {data.branding?.logo_url ? (
+            <div
+              className="flex h-9 items-center justify-center overflow-hidden rounded-lg bg-white px-2 py-1 shadow-sm"
+              style={{ border: "1px solid var(--color-pub-border)" }}
+              aria-hidden
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={data.branding.logo_url}
+                alt={`Logo ${cliente.nombre}`}
+                className="max-h-7 w-auto object-contain"
+                loading="eager"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
+              style={{ background: "var(--color-pub-accent)" }}
+              aria-hidden
+            >
+              <svg viewBox="0 0 16 16" width={14} height={14} style={{ fill: "#fff" }}>
+                <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" />
+              </svg>
+            </div>
+          )}
           <div className="flex flex-col">
             <span
               className="text-[13px] font-semibold leading-tight"
               style={{ color: "var(--color-pub-text)" }}
             >
-              Codexy
+              {cliente.nombre}
             </span>
             <span
               className="text-[10.5px] font-medium leading-tight tracking-[0.04em]"
               style={{ color: "var(--color-pub-text3)" }}
             >
-              Sistemas inteligentes para clínicas
+              {cliente.empresa ?? "Plan personalizado"}
             </span>
           </div>
           <span className="mx-2 h-4 w-px" style={{ background: "var(--color-pub-border)" }} aria-hidden />
           <span
-            className="truncate text-[12.5px]"
-            style={{ color: "var(--color-pub-text2)" }}
+            className="truncate text-[11.5px] font-medium uppercase tracking-[0.08em]"
+            style={{ color: "var(--color-pub-text3)" }}
           >
-            <span style={{ color: "var(--color-pub-text3)" }}>Para</span>{" "}
-            <span className="font-medium" style={{ color: "var(--color-pub-text)" }}>
-              {cliente.nombre}
-            </span>
-            {cliente.empresa ? (
-              <span style={{ color: "var(--color-pub-text3)" }}> · {cliente.empresa}</span>
-            ) : null}
+            Powered by Codexy
           </span>
         </div>
 
@@ -475,10 +485,8 @@ export function Timeline({ token, initial }: Props) {
             style={{
               background: "var(--color-pub-surface)",
               borderColor: "var(--color-pub-border)",
-              /* @ts-expect-error CSS var for divider */
-              "--tw-divide-opacity": "1",
               borderTopColor: "var(--color-pub-border)",
-            } as React.CSSProperties}
+            }}
           >
             {eventos.slice(0, 8).map((ev) => (
               <EventRow key={ev.id} ev={ev} />
