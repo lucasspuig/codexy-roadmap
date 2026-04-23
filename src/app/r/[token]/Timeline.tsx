@@ -973,11 +973,10 @@ function PhaseCard({ fase, index, isLast }: PhaseCardProps) {
 function PhaseIndicator({ fase }: { fase: PublicPayload["fases"][number] }) {
   if (fase.estado === "done") return <Check size={18} strokeWidth={3} aria-hidden />;
   if (fase.estado === "active") {
-    if (fase.icono) return <span className="text-[16px]">{fase.icono}</span>;
     return <Hourglass size={16} strokeWidth={2} aria-hidden />;
   }
   return (
-    <span className="text-[13px] font-semibold tabular-nums">{fase.orden}</span>
+    <span className="text-[13px] font-semibold tabular-nums font-mono">{fase.orden}</span>
   );
 }
 
