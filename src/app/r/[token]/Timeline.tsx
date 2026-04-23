@@ -230,20 +230,20 @@ export function Timeline({ token, initial }: Props) {
 
         <div className="animate-fade-in" style={{ opacity: 0, animationDelay: "120ms" }}>
           <h1
-            className="mb-4 font-normal"
+            className="mb-4 grad-text"
             style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "clamp(34px, 6vw, 52px)",
-              color: "var(--color-pub-text)",
-              letterSpacing: "-0.015em",
-              lineHeight: 1.08,
+              fontFamily: "var(--ff-sans)",
+              fontSize: "clamp(40px, 7vw, 64px)",
+              fontWeight: 700,
+              letterSpacing: "-0.035em",
+              lineHeight: 1.02,
             }}
           >
             {proyecto.nombre || "Plan de implementación"}
           </h1>
           <p
-            className="max-w-[580px] text-[15.5px] leading-[1.7]"
-            style={{ color: "var(--color-pub-text2)" }}
+            className="max-w-[580px] text-[15px] leading-[1.7]"
+            style={{ color: "var(--color-pub-text2)", letterSpacing: "-0.005em" }}
           >
             {proyecto.subtitulo ||
               "Seguimiento en tiempo real de las fases de puesta en marcha de tu plataforma con agente de inteligencia artificial."}
@@ -312,14 +312,7 @@ export function Timeline({ token, initial }: Props) {
         style={{ opacity: 0, animationDelay: "320ms" }}
         aria-label="Resumen del proyecto"
       >
-        <div
-          className="relative overflow-hidden rounded-2xl border p-6 sm:p-7"
-          style={{
-            background:
-              "linear-gradient(135deg, var(--color-pub-surface) 0%, var(--color-pub-accent-l) 140%)",
-            borderColor: "var(--color-pub-border)",
-          }}
-        >
+        <div className="glass-card relative overflow-hidden rounded-2xl p-6 sm:p-7 glow-ring-accent">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <p
@@ -330,12 +323,12 @@ export function Timeline({ token, initial }: Props) {
               </p>
               <div className="flex items-baseline gap-2">
                 <span
-                  className="tabular-nums"
+                  className="tabular-nums grad-text-accent"
                   style={{
-                    fontFamily: "var(--font-serif)",
-                    fontSize: 44,
-                    color: "var(--color-pub-text)",
-                    letterSpacing: "-0.02em",
+                    fontFamily: "var(--ff-mono)",
+                    fontSize: 48,
+                    fontWeight: 600,
+                    letterSpacing: "-0.04em",
                     lineHeight: 1,
                   }}
                 >
@@ -520,10 +513,11 @@ export function Timeline({ token, initial }: Props) {
               <p
                 className="mb-1.5"
                 style={{
-                  fontFamily: "var(--font-serif)",
-                  fontSize: 18,
+                  fontFamily: "var(--ff-sans)",
+                  fontSize: 17,
+                  fontWeight: 600,
                   color: "var(--color-pub-text)",
-                  letterSpacing: "-0.005em",
+                  letterSpacing: "-0.015em",
                 }}
               >
                 Tu proyecto es prioridad para nosotros
@@ -710,11 +704,12 @@ function MiniStat({
       <p
         className="mt-1.5 tabular-nums"
         style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: 28,
+          fontFamily: "var(--ff-mono)",
+          fontSize: 32,
+          fontWeight: 500,
           color: valueColor,
           lineHeight: 1,
-          letterSpacing: "-0.01em",
+          letterSpacing: "-0.04em",
         }}
       >
         {value}
@@ -740,20 +735,12 @@ function ActiveSpotlight({
   const itemsTotal = fase.items.length;
   const facePct = itemsTotal === 0 ? 0 : Math.round((itemsDone / itemsTotal) * 100);
   return (
-    <div
-      className="relative overflow-hidden rounded-2xl border p-6 sm:p-7"
-      style={{
-        background: "var(--color-pub-surface)",
-        borderColor: "rgba(29, 95, 166, 0.28)",
-        boxShadow:
-          "0 0 0 4px rgba(29,95,166,0.05), 0 8px 30px -12px rgba(29,95,166,0.18)",
-      }}
-    >
+    <div className="glass-card glow-ring-info relative overflow-hidden rounded-2xl p-6 sm:p-7">
       <div
-        className="absolute right-[-40px] top-[-40px] h-[140px] w-[140px] rounded-full"
+        className="absolute right-[-60px] top-[-60px] h-[180px] w-[180px] rounded-full"
         style={{
           background:
-            "radial-gradient(circle, rgba(29,95,166,0.12) 0%, transparent 65%)",
+            "radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 65%)",
         }}
         aria-hidden
       />
@@ -791,11 +778,12 @@ function ActiveSpotlight({
           <h3
             className="mb-2"
             style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: 22,
+              fontFamily: "var(--ff-sans)",
+              fontSize: 24,
+              fontWeight: 600,
               color: "var(--color-pub-text)",
-              letterSpacing: "-0.01em",
-              lineHeight: 1.25,
+              letterSpacing: "-0.025em",
+              lineHeight: 1.2,
             }}
           >
             {fase.titulo}
@@ -940,13 +928,14 @@ function PhaseCard({ fase, index, isLast }: PhaseCardProps) {
           <PublicBadge estado={estado} />
         </div>
         <h3
-          className="mb-2 font-normal"
+          className="mb-2"
           style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: 20,
+            fontFamily: "var(--ff-sans)",
+            fontSize: 21,
+            fontWeight: 600,
             color: "var(--color-pub-text)",
-            letterSpacing: "-0.008em",
-            lineHeight: 1.28,
+            letterSpacing: "-0.022em",
+            lineHeight: 1.2,
           }}
         >
           {fase.titulo}

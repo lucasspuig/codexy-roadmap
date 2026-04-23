@@ -83,7 +83,7 @@ export default async function PublicRoadmapPage({ params }: PageProps) {
 
   return (
     <div
-      className="public-view-wrap print-page"
+      className="public-view-wrap print-page tech-bg"
       style={{ ...brandStyle, ...brandVars }}
     >
       <Timeline token={token} initial={data} />

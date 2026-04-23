@@ -23,21 +23,25 @@
   --color-danger: #f87171;
   --color-danger-muted: rgba(248, 113, 113, 0.08);
 
-  /* Public view palette (cliente) — Codexy brand púrpura sobre warm cream */
-  --color-pub-bg: #faf9f6;
-  --color-pub-surface: #ffffff;
-  --color-pub-border: #e8e4dc;
-  --color-pub-text: #171320;
-  --color-pub-text2: #5e5868;
-  --color-pub-text3: #9a93a4;
-  --color-pub-accent: #6d28d9;
-  --color-pub-accent-l: #f3ecff;
+  /* Public view palette (cliente) — dark tech Codexy */
+  --color-pub-bg: #09090b;
+  --color-pub-bg-2: #0d0d12;
+  --color-pub-surface: #111114;
+  --color-pub-surface-2: #18181b;
+  --color-pub-border: #232328;
+  --color-pub-border-strong: #2f2f36;
+  --color-pub-text: #fafafa;
+  --color-pub-text2: #a1a1aa;
+  --color-pub-text3: #71717a;
+  --color-pub-accent: #a78bfa;
+  --color-pub-accent-l: rgba(139, 92, 246, 0.12);
   --color-pub-accent-m: #8b5cf6;
-  --color-pub-info: #7c3aed;
-  --color-pub-info-l: #f4edfe;
+  --color-pub-info: #8b5cf6;
+  --color-pub-info-l: rgba(124, 58, 237, 0.14);
 
-  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
-  --font-serif: var(--font-dm-serif), Georgia, serif;
+  /* Geist fonts desde next/font */
+  --ff-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --ff-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 * {
@@ -51,16 +55,111 @@ body {
 }
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--ff-sans);
   background: var(--color-bg);
   color: var(--color-t1);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
 }
 
 body.public-view {
   background: var(--color-pub-bg);
   color: var(--color-pub-text);
+}
+
+/* ─── Tech background utilities (public view) ─── */
+.tech-bg {
+  position: relative;
+  isolation: isolate;
+}
+.tech-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 70% 50% at 20% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 5%, rgba(124, 58, 237, 0.12), transparent 55%),
+    radial-gradient(ellipse 40% 35% at 50% 100%, rgba(139, 92, 246, 0.06), transparent 60%);
+  pointer-events: none;
+}
+.tech-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle, rgba(250, 250, 250, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 88%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Glass card — superficie sutil con borde de gradient */
+.glass-card {
+  background: linear-gradient(180deg, rgba(24, 24, 27, 0.6) 0%, rgba(17, 17, 20, 0.8) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-pub-border);
+  position: relative;
+}
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.2), transparent 40%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Glow rings (para active phase) */
+.glow-ring-info {
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.3),
+    0 0 40px -8px rgba(139, 92, 246, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.glow-ring-accent {
+  box-shadow:
+    0 0 0 1px rgba(167, 139, 250, 0.25),
+    0 8px 32px -12px rgba(139, 92, 246, 0.35);
+}
+
+/* Gradient text util */
+.grad-text {
+  background: linear-gradient(135deg, #fafafa 0%, #a78bfa 60%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+.grad-text-accent {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+}
+
+/* Shimmer on progress */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.5s linear infinite;
 }
 
 /* Scrollbar dark */
