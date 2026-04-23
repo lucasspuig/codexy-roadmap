@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+@theme {
+  /* Codexy brand palette */
+  --color-bg: #0c0c0e;
+  --color-s1: #151518;
+  --color-s2: #1c1c20;
+  --color-s3: #242428;
+  --color-b1: #2a2a30;
+  --color-b2: #3a3a42;
+  --color-b3: #50505a;
+  --color-t1: #eae8e2;
+  --color-t2: #a09e96;
+  --color-t3: #706e68;
+  --color-brand: #34d399;
+  --color-brand-muted: rgba(52, 211, 153, 0.08);
+  --color-brand-border: rgba(52, 211, 153, 0.25);
+  --color-info: #60a5fa;
+  --color-info-muted: rgba(96, 165, 250, 0.08);
+  --color-info-border: rgba(96, 165, 250, 0.25);
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+  --color-danger-muted: rgba(248, 113, 113, 0.08);
+
+  /* Public view palette (cliente) */
+  --color-pub-bg: #f7f5f1;
+  --color-pub-surface: #ffffff;
+  --color-pub-border: #e4e0d8;
+  --color-pub-text: #1a1816;
+  --color-pub-text2: #6b6760;
+  --color-pub-text3: #a09d99;
+  --color-pub-accent: #1a6b4a;
+  --color-pub-accent-l: #eaf4ef;
+  --color-pub-accent-m: #2d8c62;
+  --color-pub-info: #1d5fa6;
+  --color-pub-info-l: #eaf1fb;
+
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-serif: var(--font-dm-serif), Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-t1);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.public-view {
+  background: var(--color-pub-bg);
+  color: var(--color-pub-text);
+}
+
+/* Scrollbar dark */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-s1);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-b1);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-b2);
+}
+
+/* Util animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.65);
+  }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.animate-shake {
+  animation: shake 0.4s ease;
+}
+
+/* ─── Public view: scrollbar claro + estilos de impresión ─── */
+.public-view-wrap {
+  /* La página ya pinta bg warm; este wrapper tiñe el scrollbar y resetea selección. */
+}
+.public-view-wrap ::-webkit-scrollbar-track {
+  background: var(--color-pub-bg);
+}
+.public-view-wrap ::-webkit-scrollbar-thumb {
+  background: var(--color-pub-border);
+}
+.public-view-wrap ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-pub-text3);
+}
+.public-view-wrap ::selection {
+  background: var(--color-pub-accent-l);
+  color: var(--color-pub-text);
+}
+
+@media print {
+  .print-page {
+    background: #ffffff !important;
+  }
+  .print-page * {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+  }
+  @page {
+    margin: 16mm;
+  }
+}
