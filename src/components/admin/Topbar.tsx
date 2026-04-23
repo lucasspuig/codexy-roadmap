@@ -31,19 +31,21 @@ export function Topbar({ userEmail, userName, avatarUrl }: TopbarProps) {
     .join("");
 
   return (
-    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-b1)] px-5 sm:px-7 py-3">
+    <header className="sticky top-0 z-40 flex items-center justify-between gap-3 bg-[var(--color-bg)]/95 backdrop-blur border-b border-[var(--color-b1)] px-4 sm:px-6 lg:px-7 py-3">
       <div className="flex items-center gap-4 min-w-0">
         <Link
           href="/dashboard"
           className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
         >
-          <Logo size={26} />
-          <span className="text-[15px] font-semibold text-[var(--color-t1)]">
-            Codexy
-          </span>
-          <span className="hidden sm:inline text-[10px] font-medium bg-[var(--color-s3)] border border-[var(--color-b1)] rounded-full px-2 py-0.5 text-[var(--color-t3)]">
-            Roadmaps
-          </span>
+          <Logo size={36} />
+          <div className="flex flex-col leading-tight">
+            <span className="text-[15px] font-semibold text-[var(--color-t1)] tracking-[-0.01em]">
+              Codexy
+            </span>
+            <span className="text-[10px] font-medium text-[var(--color-t3)] uppercase tracking-[0.08em]">
+              Roadmaps
+            </span>
+          </div>
         </Link>
         <nav className="hidden md:flex items-center gap-1 ml-2">
           {navItems.map(({ href, label, icon: Icon }) => {

@@ -20,30 +20,30 @@ const accentStyles: Record<NonNullable<StatCardsProps["items"][number]["accent"]
 
 export function StatCards({ items }: StatCardsProps) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
       {items.map(({ label, value, icon: Icon, accent = "neutral" }) => (
         <div
           key={label}
-          className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-4 flex items-start justify-between gap-3"
+          className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3"
         >
-          <div>
-            <div className="text-[11px] font-medium text-[var(--color-t3)] uppercase tracking-wider">
-              {label}
-            </div>
-            <div className="text-[22px] font-semibold text-[var(--color-t1)] mt-1.5 leading-none">
-              {value}
-            </div>
-          </div>
           {Icon ? (
             <div
               className={cn(
-                "w-8 h-8 rounded-[8px] border flex items-center justify-center flex-shrink-0",
+                "w-8 h-8 sm:w-9 sm:h-9 rounded-[8px] border flex items-center justify-center flex-shrink-0",
                 accentStyles[accent],
               )}
             >
               <Icon size={15} />
             </div>
           ) : null}
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] sm:text-[11px] font-medium text-[var(--color-t3)] uppercase tracking-wider truncate">
+              {label}
+            </div>
+            <div className="text-[20px] sm:text-[22px] font-semibold text-[var(--color-t1)] mt-0.5 leading-none tabular-nums">
+              {value}
+            </div>
+          </div>
         </div>
       ))}
     </div>

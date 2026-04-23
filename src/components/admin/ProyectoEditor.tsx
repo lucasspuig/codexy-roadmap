@@ -1000,56 +1000,61 @@ function FaseCard({
   }
 
   return (
-    <div className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-5 hover:border-[var(--color-b2)] transition-colors">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex flex-col gap-0.5">
+    <div className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-4 sm:p-5 hover:border-[var(--color-b2)] transition-colors">
+      {/* Header: orden + título + delete. En mobile el título ocupa toda una fila, reorder + label van arriba */}
+      <div className="flex items-start gap-2 sm:gap-3 mb-3">
+        <div className="flex flex-col gap-0.5 pt-1">
           <button
             type="button"
             onClick={() => onReorder("up")}
             disabled={isFirst}
             aria-label="Mover arriba"
-            className="h-5 w-5 rounded flex items-center justify-center text-[var(--color-t3)] hover:bg-[var(--color-s2)] hover:text-[var(--color-t1)] disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+            className="h-6 w-6 rounded flex items-center justify-center text-[var(--color-t3)] hover:bg-[var(--color-s2)] hover:text-[var(--color-t1)] disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
           >
-            <ChevronUp size={13} />
+            <ChevronUp size={14} />
           </button>
           <button
             type="button"
             onClick={() => onReorder("down")}
             disabled={isLast}
             aria-label="Mover abajo"
-            className="h-5 w-5 rounded flex items-center justify-center text-[var(--color-t3)] hover:bg-[var(--color-s2)] hover:text-[var(--color-t1)] disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
+            className="h-6 w-6 rounded flex items-center justify-center text-[var(--color-t3)] hover:bg-[var(--color-s2)] hover:text-[var(--color-t1)] disabled:opacity-20 disabled:hover:bg-transparent transition-colors"
           >
-            <ChevronDown size={13} />
+            <ChevronDown size={14} />
           </button>
         </div>
-        <span className="text-[11px] font-semibold text-[var(--color-t3)] uppercase tracking-wider min-w-[46px]">
-          Fase {index + 1}
-        </span>
-        <input
-          ref={tituloInputRef}
-          value={titulo}
-          onChange={(e) => {
-            setTitulo(e.target.value);
-            debounceField("titulo", e.target.value);
-          }}
-          onBlur={() => {
-            if (tituloTimer.current) clearTimeout(tituloTimer.current);
-            if (titulo !== fase.titulo) onFieldChange({ titulo });
-          }}
-          placeholder="Título de la fase"
-          className="flex-1 bg-transparent border-b border-transparent focus:border-[var(--color-info)] hover:border-[var(--color-b1)] text-[15px] font-medium text-[var(--color-t1)] py-1 outline-none transition-colors min-w-0"
-        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-[10.5px] font-semibold text-[var(--color-t3)] uppercase tracking-wider">
+              Fase {index + 1}
+            </span>
+          </div>
+          <input
+            ref={tituloInputRef}
+            value={titulo}
+            onChange={(e) => {
+              setTitulo(e.target.value);
+              debounceField("titulo", e.target.value);
+            }}
+            onBlur={() => {
+              if (tituloTimer.current) clearTimeout(tituloTimer.current);
+              if (titulo !== fase.titulo) onFieldChange({ titulo });
+            }}
+            placeholder="Título de la fase"
+            className="w-full bg-transparent border-b border-transparent focus:border-[var(--color-info)] hover:border-[var(--color-b1)] text-[15px] font-medium text-[var(--color-t1)] py-1 outline-none transition-colors"
+          />
+        </div>
         <button
           type="button"
           onClick={onDelete}
           aria-label="Eliminar fase"
-          className="h-7 w-7 rounded flex items-center justify-center text-[var(--color-t3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-muted)] transition-colors"
+          className="h-8 w-8 rounded flex items-center justify-center text-[var(--color-t3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-muted)] transition-colors flex-shrink-0"
         >
           <Trash2 size={14} />
         </button>
       </div>
 
-      <div className="flex gap-1.5 mb-3 pl-[58px] flex-wrap">
+      <div className="flex gap-1.5 mb-3 flex-wrap">
         {(["done", "active", "pending"] as const).map((e) => (
           <button
             key={e}
