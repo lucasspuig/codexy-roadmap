@@ -244,16 +244,123 @@ body.public-view {
   color: var(--color-pub-text);
 }
 
+/* ═══════════════════════════════════════════════════
+   Print styles: transforma la vista dark tech en un
+   documento limpio, ordenado y listo para imprimir
+   ═══════════════════════════════════════════════════ */
 @media print {
-  .print-page {
-    background: #ffffff !important;
+  @page {
+    margin: 18mm 14mm;
+    size: A4;
   }
-  .print-page * {
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0a0a0a !important;
+    font-family: var(--ff-sans) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Reset completo: quitá backgrounds, sombras, bordes llamativos */
+  .print-page,
+  .print-page *,
+  .public-view-wrap,
+  .public-view-wrap * {
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
-  @page {
-    margin: 16mm;
+
+  /* Quitá aurora gradient y dot grid */
+  .tech-bg::before,
+  .tech-bg::after {
+    display: none !important;
+  }
+
+  /* Fuerza fondo blanco + texto negro en todo el wrapper público */
+  .public-view-wrap {
+    background: #ffffff !important;
+    color: #0a0a0a !important;
+  }
+
+  /* Glass cards → cards blancas con borde suave */
+  .public-view-wrap .glass-card {
+    background: #ffffff !important;
+    border: 1px solid #e5e5e7 !important;
+  }
+  .public-view-wrap .glass-card::before {
+    display: none !important;
+  }
+
+  /* Texto: negro para contraste en papel */
+  .public-view-wrap [style*="color: var(--color-pub-text)"],
+  .public-view-wrap [style*="var(--color-pub-text)"] {
+    color: #0a0a0a !important;
+  }
+  .public-view-wrap [style*="var(--color-pub-text2)"] {
+    color: #3a3a3a !important;
+  }
+  .public-view-wrap [style*="var(--color-pub-text3)"] {
+    color: #6b6b6b !important;
+  }
+
+  /* Gradient text → sólido púrpura oscuro o negro */
+  .public-view-wrap .grad-text,
+  .public-view-wrap .grad-text-accent {
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    color: #1e1b4b !important;
+    -webkit-text-fill-color: #1e1b4b !important;
+  }
+
+  /* Progress bar/ring color sólido (púrpura Codexy) */
+  .public-view-wrap [style*="var(--color-pub-accent)"],
+  .public-view-wrap [style*="var(--color-pub-accent-m)"],
+  .public-view-wrap [style*="var(--color-pub-info)"] {
+    color: #6d28d9 !important;
+  }
+
+  /* Ocultá elementos interactivos / dinámicos */
+  .print\:hidden,
+  button,
+  .public-view-wrap button[type="button"] {
+    display: none !important;
+  }
+
+  /* Page breaks: cada fase idealmente no se corta */
+  article {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Chips con borde sólido suave en print */
+  .public-view-wrap span[class*="rounded-full"] {
+    background: #fafafa !important;
+    border: 1px solid #e5e5e7 !important;
+    color: #3a3a3a !important;
+  }
+
+  /* Footer siempre al pie */
+  footer {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Timeline line: gris muy sutil */
+  .public-view-wrap [style*="linear-gradient(to bottom"] {
+    background: #d4d4d8 !important;
+  }
+
+  /* Indicadores de fase con fondo sólido */
+  .public-view-wrap [aria-hidden="true"][class*="rounded-full"][class*="flex-shrink-0"] {
+    background: #ffffff !important;
+    border: 2px solid #6d28d9 !important;
+    color: #6d28d9 !important;
   }
 }

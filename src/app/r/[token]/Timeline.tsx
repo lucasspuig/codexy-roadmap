@@ -276,16 +276,16 @@ export function Timeline({ token, initial }: Props) {
           <button
             type="button"
             onClick={onPrint}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-[6px] text-xs transition hover:brightness-[1.03] print:hidden"
+            className="ml-auto inline-flex min-h-[34px] items-center gap-2 rounded-full border px-4 py-[7px] text-[12.5px] font-medium transition hover:brightness-[1.08] print:hidden"
             style={{
-              background: "var(--color-pub-surface)",
-              borderColor: "var(--color-pub-border)",
-              color: "var(--color-pub-text2)",
+              background: "var(--color-pub-accent-l)",
+              borderColor: "var(--color-pub-accent-m)",
+              color: "var(--color-pub-accent)",
             }}
-            aria-label="Descargar o imprimir"
+            aria-label="Descargar o imprimir como PDF"
           >
-            <Printer size={12} aria-hidden />
-            <span>PDF</span>
+            <Printer size={14} strokeWidth={2.25} aria-hidden />
+            <span>Descargar PDF</span>
           </button>
         </div>
 

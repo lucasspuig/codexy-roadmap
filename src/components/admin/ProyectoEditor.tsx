@@ -394,7 +394,8 @@ export function ProyectoEditor({
                   ? {
                       ...i,
                       id: res.data.id,
-                      texto: "Nuevo ítem",
+                      // ⚠ Preservá el texto que el user pudo tipear mientras el insert
+                      // estaba en vuelo. NO hardcodear "Nuevo ítem".
                       _persisted: true,
                       _updated_at: Date.now(),
                     }
@@ -958,24 +959,43 @@ function FaseCard({
   const [descripcion, setDescripcion] = useState(fase.descripcion);
   const tituloTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const descTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tituloInputRef = useRef<HTMLInputElement>(null);
+  const descInputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Mantener sync si viene cambio de realtime
+  // Sync con realtime SOLO si el input no está enfocado — no interrumpimos
+  // al usuario mientras tipea.
   useEffect(() => {
+    if (document.activeElement === tituloInputRef.current) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTitulo(fase.titulo);
   }, [fase.titulo]);
   useEffect(() => {
+    if (document.activeElement === descInputRef.current) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDescripcion(fase.descripcion);
   }, [fase.descripcion]);
 
+  // Flush de pending saves antes de unmount / navegar.
+  useEffect(() => {
+    return () => {
+      if (tituloTimer.current) {
+        clearTimeout(tituloTimer.current);
+        tituloTimer.current = null;
+      }
+      if (descTimer.current) {
+        clearTimeout(descTimer.current);
+        descTimer.current = null;
+      }
+    };
+  }, []);
+
   function debounceField(field: "titulo" | "descripcion", value: string) {
     if (field === "titulo") {
       if (tituloTimer.current) clearTimeout(tituloTimer.current);
-      tituloTimer.current = setTimeout(() => onFieldChange({ titulo: value }), 800);
+      tituloTimer.current = setTimeout(() => onFieldChange({ titulo: value }), 400);
     } else {
       if (descTimer.current) clearTimeout(descTimer.current);
-      descTimer.current = setTimeout(() => onFieldChange({ descripcion: value }), 800);
+      descTimer.current = setTimeout(() => onFieldChange({ descripcion: value }), 400);
     }
   }
 
@@ -1006,6 +1026,7 @@ function FaseCard({
           Fase {index + 1}
         </span>
         <input
+          ref={tituloInputRef}
           value={titulo}
           onChange={(e) => {
             setTitulo(e.target.value);
@@ -1051,6 +1072,7 @@ function FaseCard({
       </div>
 
       <Textarea
+        ref={descInputRef}
         value={descripcion}
         onChange={(e) => {
           setDescripcion(e.target.value);
@@ -1106,6 +1128,34 @@ function ItemRow({
   onDelete: () => void;
 }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const lastPropTextRef = useRef(item.texto);
+
+  // Sincroniza el value del input cuando el prop texto cambia desde fuera
+  // (realtime, insert complete, otro admin) — PERO solo si el input NO está
+  // enfocado. Así nunca interrumpimos al usuario que está tipeando.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    if (document.activeElement === el) return;
+    if (lastPropTextRef.current === item.texto) return;
+    el.value = item.texto;
+    lastPropTextRef.current = item.texto;
+  }, [item.texto]);
+
+  // Flush pendiente antes de unmount (evita perder el último change al
+  // cambiar de fase / eliminar / navegar).
+  useEffect(() => {
+    return () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        onTextSave();
+      }
+    };
+    // onTextSave es recreado cada render; no lo incluimos a propósito para
+    // que el cleanup solo corra al unmount real.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex items-center gap-2">
@@ -1123,11 +1173,14 @@ function ItemRow({
         <Check size={10} strokeWidth={3} />
       </button>
       <input
-        value={item.texto}
+        ref={inputRef}
+        defaultValue={item.texto}
         onChange={(e) => {
-          onTextChange(e.target.value);
+          const v = e.target.value;
+          lastPropTextRef.current = v;
+          onTextChange(v);
           if (timer.current) clearTimeout(timer.current);
-          timer.current = setTimeout(onTextSave, 800);
+          timer.current = setTimeout(onTextSave, 350);
         }}
         onBlur={() => {
           if (timer.current) clearTimeout(timer.current);
