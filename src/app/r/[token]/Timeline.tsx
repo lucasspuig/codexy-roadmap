@@ -196,11 +196,12 @@ export function Timeline({ token, initial }: Props) {
           ) : (
             <div
               className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
-              style={{ background: "var(--color-pub-accent)" }}
+              style={{ background: "var(--color-pub-accent)", color: "#fff" }}
               aria-hidden
             >
-              <svg viewBox="0 0 16 16" width={14} height={14} style={{ fill: "#fff" }}>
-                <path d="M8 1L14 4.5V11.5L8 15L2 11.5V4.5L8 1Z" />
+              <svg viewBox="0 0 100 100" width={15} height={15} fill="currentColor">
+                <path d="M12 10 L28 10 Q32 10 35 14 L50 36 Q52 39 52 42 L52 58 Q52 61 50 64 L35 86 Q32 90 28 90 L12 90 Q8 90 10 86 L30 54 Q33 50 30 46 L10 14 Q8 10 12 10 Z" />
+                <path d="M88 10 L72 10 Q68 10 65 14 L50 36 Q48 39 48 42 L48 58 Q48 61 50 64 L65 86 Q68 90 72 90 L88 90 Q92 90 90 86 L70 54 Q67 50 70 46 L90 14 Q92 10 88 10 Z" />
               </svg>
             </div>
           )}
