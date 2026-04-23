@@ -13,6 +13,7 @@ type ProyectoRow = {
   estado: ProyectoEstado;
   updated_at: string;
   fases: Array<{ estado: FaseEstado }> | null;
+  tokens: Array<{ token: string; activo: boolean }> | null;
 };
 
 type ClienteRow = {
@@ -34,7 +35,9 @@ export default async function DashboardPage() {
       .order("nombre", { ascending: true }),
     supabase
       .from("roadmap_proyectos")
-      .select("id, cliente_id, nombre, estado, updated_at, fases:roadmap_fases(estado)"),
+      .select(
+        "id, cliente_id, nombre, estado, updated_at, fases:roadmap_fases(estado), tokens:roadmap_tokens_publicos(token, activo)",
+      ),
     supabase
       .from("roadmap_plantillas")
       .select("id, nombre, descripcion, rubro, fases, activa")
@@ -66,6 +69,7 @@ export default async function DashboardPage() {
     const fases = p.fases ?? [];
     const done = fases.filter((f) => f.estado === "done").length;
     const active = fases.filter((f) => f.estado === "active").length;
+    const activeToken = (p.tokens ?? []).find((t) => t.activo)?.token ?? null;
     return {
       id: c.id,
       nombre: c.nombre,
@@ -79,6 +83,7 @@ export default async function DashboardPage() {
         fases_total: fases.length,
         fases_done: done,
         fases_active: active,
+        publicToken: activeToken,
       },
     };
   });

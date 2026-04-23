@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Plus, Building2, Circle } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, Plus, Building2, Circle, Link2, Check } from "lucide-react";
+import { toast } from "sonner";
 
 import { ProgressBar } from "@/components/admin/ProgressBar";
-import { cn, relativeTime } from "@/lib/utils";
+import { cn, getPublicUrl, relativeTime } from "@/lib/utils";
 import type { ProyectoEstado } from "@/types/database";
 
 export interface ClientCardData {
@@ -20,6 +22,7 @@ export interface ClientCardData {
     fases_total: number;
     fases_done: number;
     fases_active: number;
+    publicToken: string | null;
   } | null;
 }
 
@@ -67,34 +70,84 @@ export function ClientCard({
 
   const p = client.proyecto!;
   return (
-    <Link
-      href={`/proyectos/${p.id}`}
-      className={cn(commonCard, "block hover:shadow-[0_0_0_1px_var(--color-b2)]")}
+    <div className={cn(commonCard, "hover:shadow-[0_0_0_1px_var(--color-b2)]")}>
+      <Link href={`/proyectos/${p.id}`} className="block">
+        <div className="flex items-start justify-between gap-2 mb-4">
+          <Header client={client} />
+          <ArrowUpRight
+            size={15}
+            className="text-[var(--color-t3)] group-hover:text-[var(--color-brand)] transition-colors flex-shrink-0 mt-0.5"
+          />
+        </div>
+        <div className="flex items-center gap-2 mb-2">
+          <span
+            className={cn(
+              "inline-block w-1.5 h-1.5 rounded-full flex-shrink-0",
+              estadoDot[p.estado],
+            )}
+          />
+          <span className="text-[11px] font-medium text-[var(--color-t2)]">
+            {estadoLabel[p.estado]}
+          </span>
+          <span className="text-[11px] text-[var(--color-t3)]">·</span>
+          <span className="text-[11px] text-[var(--color-t3)] truncate">
+            {relativeTime(p.updated_at)}
+          </span>
+        </div>
+        <ProgressBar value={p.fases_done} total={p.fases_total} showLabel />
+      </Link>
+      {p.publicToken ? (
+        <div className="mt-3 pt-3 border-t border-[var(--color-b1)]">
+          <CopyLinkButton token={p.publicToken} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CopyLinkButton({ token }: { token: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = getPublicUrl(token);
+
+  const copy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copiado al portapapeles");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar");
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className={cn(
+        "group/copy flex w-full items-center gap-2 rounded-[7px] px-2.5 py-1.5 text-left transition-all",
+        "bg-[var(--color-s2)] hover:bg-[var(--color-s3)] border border-[var(--color-b1)] hover:border-[var(--color-brand)]",
+      )}
+      title={url}
     >
-      <div className="flex items-start justify-between gap-2 mb-4">
-        <Header client={client} />
-        <ArrowUpRight
-          size={15}
-          className="text-[var(--color-t3)] group-hover:text-[var(--color-brand)] transition-colors flex-shrink-0 mt-0.5"
+      {copied ? (
+        <Check
+          size={12}
+          className="flex-shrink-0 text-[var(--color-brand)]"
+          strokeWidth={3}
         />
-      </div>
-      <div className="flex items-center gap-2 mb-2">
-        <span
-          className={cn(
-            "inline-block w-1.5 h-1.5 rounded-full flex-shrink-0",
-            estadoDot[p.estado],
-          )}
+      ) : (
+        <Link2
+          size={12}
+          className="flex-shrink-0 text-[var(--color-t3)] group-hover/copy:text-[var(--color-brand)] transition-colors"
         />
-        <span className="text-[11px] font-medium text-[var(--color-t2)]">
-          {estadoLabel[p.estado]}
-        </span>
-        <span className="text-[11px] text-[var(--color-t3)]">·</span>
-        <span className="text-[11px] text-[var(--color-t3)] truncate">
-          {relativeTime(p.updated_at)}
-        </span>
-      </div>
-      <ProgressBar value={p.fases_done} total={p.fases_total} showLabel />
-    </Link>
+      )}
+      <span className="flex-1 text-[11px] text-[var(--color-t2)] truncate font-mono">
+        {copied ? "¡Copiado!" : url.replace(/^https?:\/\//, "")}
+      </span>
+    </button>
   );
 }
 

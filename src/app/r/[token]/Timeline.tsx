@@ -175,7 +175,7 @@ export function Timeline({ token, initial }: Props) {
   void now;
 
   return (
-    <div className="mx-auto w-full max-w-[760px] px-5 pb-24 pt-8 sm:px-7 sm:pt-14">
+    <div className="mx-auto w-full max-w-[760px] px-4 pb-20 pt-6 sm:px-7 sm:pt-14 sm:pb-24">
       {/* ─────────── Hero ─────────── */}
       <header className="mb-12 sm:mb-14">
         <div className="mb-6 flex items-center gap-2.5 animate-fade-in" style={{ opacity: 0 }}>
@@ -864,20 +864,24 @@ function PhaseCard({ fase, index, isLast }: PhaseCardProps) {
   const indicatorStyles: Record<FaseEstado, React.CSSProperties> = {
     done: {
       background: "var(--color-pub-accent)",
-      border: "2.5px solid var(--color-pub-bg)",
+      border: "none",
       color: "#fff",
-      boxShadow: "0 0 0 1.5px var(--color-pub-accent)",
+      boxShadow:
+        "0 0 0 4px var(--color-pub-bg), 0 0 0 5px var(--color-pub-accent-m), 0 0 20px -4px rgba(139,92,246,0.4)",
     },
     active: {
-      background: "var(--color-pub-info-l)",
-      border: "2px solid var(--color-pub-info)",
+      background: "var(--color-pub-bg)",
+      border: "none",
       color: "var(--color-pub-info)",
-      boxShadow: "0 0 0 5px rgba(29,95,166,0.1)",
+      boxShadow:
+        "0 0 0 4px var(--color-pub-bg), 0 0 0 5px var(--color-pub-info), 0 0 24px -4px rgba(139,92,246,0.5)",
     },
     pending: {
-      background: "var(--color-pub-surface)",
-      border: "1.5px solid var(--color-pub-border)",
+      background: "var(--color-pub-bg)",
+      border: "none",
       color: "var(--color-pub-text3)",
+      boxShadow:
+        "0 0 0 4px var(--color-pub-bg), 0 0 0 5px var(--color-pub-border-strong, var(--color-pub-border))",
     },
   };
 
@@ -885,11 +889,11 @@ function PhaseCard({ fase, index, isLast }: PhaseCardProps) {
     background: "var(--color-pub-surface)",
     borderColor:
       estado === "active"
-        ? "rgba(29,95,166,0.22)"
+        ? "rgba(139, 92, 246, 0.28)"
         : "var(--color-pub-border)",
     boxShadow:
       estado === "active"
-        ? "0 4px 20px -8px rgba(29,95,166,0.12)"
+        ? "0 4px 28px -8px rgba(139, 92, 246, 0.22)"
         : undefined,
   };
 
@@ -973,10 +977,72 @@ function PhaseCard({ fase, index, isLast }: PhaseCardProps) {
 function PhaseIndicator({ fase }: { fase: PublicPayload["fases"][number] }) {
   if (fase.estado === "done") return <Check size={18} strokeWidth={3} aria-hidden />;
   if (fase.estado === "active") {
-    return <Hourglass size={16} strokeWidth={2} aria-hidden />;
+    const total = fase.items.length;
+    const done = fase.items.filter((i) => i.completado).length;
+    const pct = total > 0 ? done / total : 0.5;
+    return <ActiveProgressRing pct={pct} />;
   }
   return (
-    <span className="text-[13px] font-semibold tabular-nums font-mono">{fase.orden}</span>
+    <span
+      className="tabular-nums"
+      style={{
+        fontFamily: "var(--ff-mono)",
+        fontSize: 13,
+        fontWeight: 500,
+        letterSpacing: "-0.02em",
+      }}
+    >
+      {fase.orden}
+    </span>
+  );
+}
+
+/**
+ * Anillo de progreso para fases activas. Rellena un arco proporcional al % de items
+ * completados, con un Hourglass en el centro. Reemplaza el icono plano que "chocaba"
+ * con la línea del timeline.
+ */
+function ActiveProgressRing({ pct }: { pct: number }) {
+  const size = 36;
+  const stroke = 2.5;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.max(0.08, Math.min(1, pct)));
+  return (
+    <div
+      className="relative flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="absolute inset-0 rotate-[-90deg]"
+        aria-hidden
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="rgba(139, 92, 246, 0.2)"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="var(--color-pub-info)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 1s cubic-bezier(.22,1,.36,1)" }}
+        />
+      </svg>
+      <Hourglass size={11} strokeWidth={2} aria-hidden />
+    </div>
   );
 }
 
