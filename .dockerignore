@@ -9,5 +9,6 @@ Dockerfile
 .dockerignore
 README.md
 legacy
+mcp
 *.log
 .DS_Store
