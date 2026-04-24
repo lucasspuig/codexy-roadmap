@@ -81,11 +81,28 @@ export default function RootLayout({
         {children}
         <Toaster
           position="bottom-right"
+          offset={16}
           toastOptions={{
+            unstyled: false,
             style: {
-              background: "var(--color-s2)",
+              background:
+                "color-mix(in srgb, var(--color-s1) 78%, transparent)",
+              backdropFilter: "blur(20px) saturate(180%)",
+              WebkitBackdropFilter: "blur(20px) saturate(180%)",
               border: "1px solid var(--color-b1)",
               color: "var(--color-t1)",
+              borderRadius: "10px",
+              fontFamily: "var(--ff-sans)",
+              fontSize: "13px",
+              padding: "10px 14px",
+              boxShadow:
+                "var(--shadow-lg), inset 0 1px 0 color-mix(in srgb, var(--color-b3) 30%, transparent)",
+            },
+            classNames: {
+              success: "!border-l-4 !border-l-[var(--color-brand)]",
+              error: "!border-l-4 !border-l-[var(--color-danger)]",
+              warning: "!border-l-4 !border-l-[var(--color-warn)]",
+              info: "!border-l-4 !border-l-[var(--color-info)]",
             },
           }}
         />

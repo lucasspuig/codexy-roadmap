@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -18,6 +18,7 @@ import { ClientCard, type ClientCardData } from "@/components/admin/ClientCard";
 import { EmptyState } from "@/components/admin/EmptyState";
 import { NewRoadmapDialog } from "@/components/admin/NewRoadmapDialog";
 import { StatCards } from "@/components/admin/StatCards";
+import { CMDK_NEW_ROADMAP_EVENT } from "@/components/admin/CommandPalette";
 
 export interface DashboardClientProps {
   clients: ClientCardData[];
@@ -73,6 +74,13 @@ export function DashboardClient({ clients, plantillas }: DashboardClientProps) {
     setPreselect(clienteId ?? null);
     setDialogOpen(true);
   };
+
+  // La Command Palette dispara este evento desde la acción "Nuevo roadmap".
+  useEffect(() => {
+    const handler = () => openDialogFor();
+    window.addEventListener(CMDK_NEW_ROADMAP_EVENT, handler);
+    return () => window.removeEventListener(CMDK_NEW_ROADMAP_EVENT, handler);
+  }, []);
 
   return (
     <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-7 py-6 sm:py-8">
@@ -180,7 +188,7 @@ export function DashboardClient({ clients, plantillas }: DashboardClientProps) {
           description={`No encontramos clientes que coincidan con "${query}".`}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="stagger-children grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((c) => (
             <ClientCard key={c.id} client={c} onCreate={openDialogFor} />
           ))}

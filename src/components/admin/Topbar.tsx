@@ -7,6 +7,7 @@ import { ChevronRight, LogOut, Search } from "lucide-react";
 
 import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
+import { useCommandPalette } from "@/components/admin/CommandPalette";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/login/actions";
 
@@ -18,6 +19,7 @@ export interface TopbarProps {
 
 export function Topbar({ userEmail, userName, avatarUrl }: TopbarProps) {
   const pathname = usePathname();
+  const cmdPalette = useCommandPalette();
   const [pending, startTransition] = useTransition();
   const [scrolled, setScrolled] = useState(false);
 
@@ -108,14 +110,13 @@ export function Topbar({ userEmail, userName, avatarUrl }: TopbarProps) {
           {/* Search pill (⌘K trigger) */}
           <button
             type="button"
-            disabled
-            title="Command palette (próximamente)"
+            onClick={() => cmdPalette.toggle()}
+            title="Abrir paleta de comandos (⌘K)"
             className={cn(
               "hidden md:inline-flex items-center gap-2 h-9 px-3 rounded-[8px]",
               "bg-[var(--color-s2)] border border-[var(--color-b1)]",
               "text-[var(--color-t3)] text-[12px] w-[220px] lg:w-[260px]",
               "hover:border-[var(--color-b2)] hover:text-[var(--color-t2)] transition-colors",
-              "disabled:opacity-70",
             )}
             aria-label="Buscar (⌘K)"
           >

@@ -19,6 +19,8 @@ import {
   ExternalLink,
   Link as LinkIcon,
   Mail,
+  PanelRightClose,
+  PanelRightOpen,
   Pencil,
   Phone,
   Plus,
@@ -141,6 +143,33 @@ export function ProyectoEditor({
   const [deletingProyecto, setDeletingProyecto] = useState(false);
   const [regenConfirm, setRegenConfirm] = useState(false);
   const [editingCliente, setEditingCliente] = useState(false);
+  // Right panel persistido en localStorage. Toggle con tecla ]
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  useEffect(() => {
+    const v = localStorage.getItem("codexy-right-panel");
+    if (v === "closed") setRightPanelOpen(false);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(
+      "codexy-right-panel",
+      rightPanelOpen ? "open" : "closed",
+    );
+  }, [rightPanelOpen]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // No trigger si estás tipeando en input/textarea
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) {
+        return;
+      }
+      if (e.key === "]") {
+        e.preventDefault();
+        setRightPanelOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ─── Realtime ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -576,10 +605,30 @@ export function ProyectoEditor({
               Ver como cliente
             </Button>
           ) : null}
+          {/* Toggle del right panel — visible solo en desktop */}
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={() => setRightPanelOpen((v) => !v)}
+            title={rightPanelOpen ? "Ocultar panel lateral (])" : "Mostrar panel lateral (])"}
+            aria-label={rightPanelOpen ? "Ocultar panel" : "Mostrar panel"}
+            className="hidden xl:inline-flex"
+          >
+            {rightPanelOpen ? (
+              <PanelRightClose size={14} />
+            ) : (
+              <PanelRightOpen size={14} />
+            )}
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-6">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-6 transition-[grid-template-columns] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+          rightPanelOpen ? "xl:grid-cols-[1fr_340px]" : "xl:grid-cols-[1fr]",
+        )}
+      >
         {/* LEFT */}
         <div className="min-w-0">
           {/* Link público */}
@@ -1000,7 +1049,12 @@ function FaseCard({
   }
 
   return (
-    <div className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-4 sm:p-5 hover:border-[var(--color-b2)] transition-colors">
+    <div
+      className={cn(
+        "card-elevated p-4 sm:p-5",
+        fase.estado === "active" && "is-active",
+      )}
+    >
       {/* Header: orden + título + delete. En mobile el título ocupa toda una fila, reorder + label van arriba */}
       <div className="flex items-start gap-2 sm:gap-3 mb-3">
         <div className="flex flex-col gap-0.5 pt-1">
