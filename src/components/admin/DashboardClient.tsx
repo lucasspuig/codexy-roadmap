@@ -75,14 +75,22 @@ export function DashboardClient({ clients, plantillas }: DashboardClientProps) {
   };
 
   return (
-    <div className="flex-1 w-full max-w-7xl mx-auto px-5 sm:px-7 py-7">
-      <div className="flex items-start justify-between gap-3 flex-wrap mb-5">
+    <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-7 py-6 sm:py-8">
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-6">
         <div>
-          <h1 className="text-[22px] font-semibold text-[var(--color-t1)]">
+          <h1
+            className="font-semibold text-[var(--color-t1)]"
+            style={{
+              fontFamily: "var(--ff-sans)",
+              fontSize: "clamp(24px, 3vw, 30px)",
+              letterSpacing: "-0.025em",
+              lineHeight: 1.1,
+            }}
+          >
             Clientes
           </h1>
-          <p className="text-[13px] text-[var(--color-t3)] mt-0.5">
-            Gestioná los roadmaps de implementación de cada cliente.
+          <p className="text-[13px] text-[var(--color-t3)] mt-1 max-w-[480px]">
+            Gestioná los roadmaps de implementación. Cada cliente ve su progreso en vivo via link único.
           </p>
         </div>
         <Button
@@ -90,7 +98,7 @@ export function DashboardClient({ clients, plantillas }: DashboardClientProps) {
           onClick={() => openDialogFor()}
           disabled={plantillas.length === 0}
         >
-          <Plus size={14} />
+          <Plus size={14} strokeWidth={2.5} />
           Nuevo roadmap
         </Button>
       </div>
@@ -103,6 +111,11 @@ export function DashboardClient({ clients, plantillas }: DashboardClientProps) {
             value: stats.conRoadmap,
             icon: Sparkles,
             accent: "info",
+            hero: true,
+            hint:
+              stats.total > 0
+                ? `${Math.round((stats.conRoadmap / stats.total) * 100)}% del total`
+                : undefined,
           },
           {
             label: "En curso",
