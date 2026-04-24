@@ -178,7 +178,7 @@ export function Timeline({ token, initial }: Props) {
     <div className="mx-auto w-full max-w-full px-4 pb-20 pt-6 sm:max-w-[720px] sm:px-6 sm:pt-12 sm:pb-24 lg:max-w-[760px] lg:px-7 lg:pt-14">
       {/* ─────────── Hero ─────────── */}
       <header className="mb-12 sm:mb-14">
-        <div className="mb-6 flex items-center gap-2.5 animate-fade-in" style={{ opacity: 0 }}>
+        <div className="mb-6 flex items-center gap-2.5 animate-fade-in">
           {data.branding?.logo_url ? (
             <div
               className="flex h-9 items-center justify-center overflow-hidden rounded-lg bg-white px-2 py-1 shadow-sm"
@@ -228,7 +228,7 @@ export function Timeline({ token, initial }: Props) {
           </span>
         </div>
 
-        <div className="animate-fade-in" style={{ opacity: 0, animationDelay: "120ms" }}>
+        <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
           <h1
             className="mb-4 grad-text"
             style={{
@@ -252,7 +252,7 @@ export function Timeline({ token, initial }: Props) {
 
         <div
           className="mt-6 flex flex-wrap items-center gap-2 animate-fade-in"
-          style={{ opacity: 0, animationDelay: "220ms" }}
+          style={{ animationDelay: "220ms" }}
         >
           <LiveChip label="En vivo" sublabel={relativeTime(ultima_actualizacion)} />
           {summary.activeIndex ? (
@@ -309,7 +309,7 @@ export function Timeline({ token, initial }: Props) {
       {/* ─────────── Progress dashboard ─────────── */}
       <section
         className="mb-10 grid grid-cols-1 gap-3 animate-fade-in sm:grid-cols-[1fr_auto] sm:gap-4"
-        style={{ opacity: 0, animationDelay: "320ms" }}
+        style={{ animationDelay: "320ms" }}
         aria-label="Resumen del proyecto"
       >
         <div className="glass-card relative overflow-hidden rounded-2xl p-6 sm:p-7 glow-ring-accent">
@@ -405,7 +405,7 @@ export function Timeline({ token, initial }: Props) {
       {summary.active ? (
         <section
           className="mb-10 animate-fade-in"
-          style={{ opacity: 0, animationDelay: "420ms" }}
+          style={{ animationDelay: "420ms" }}
           aria-label="Fase actual"
         >
           <ActiveSpotlight fase={summary.active} index={summary.activeIndex ?? 0} />
@@ -459,7 +459,7 @@ export function Timeline({ token, initial }: Props) {
       {eventos.length > 0 ? (
         <section
           className="mt-14 animate-fade-in"
-          style={{ opacity: 0, animationDelay: "600ms" }}
+          style={{ animationDelay: "600ms" }}
         >
           <div className="mb-5 flex items-center gap-2">
             <h2
@@ -492,7 +492,7 @@ export function Timeline({ token, initial }: Props) {
       {/* ─────────── Footer ─────────── */}
       <footer
         className="mt-16 animate-fade-in"
-        style={{ opacity: 0, animationDelay: "700ms" }}
+        style={{ animationDelay: "700ms" }}
       >
         <div
           className="rounded-2xl border p-6 sm:p-7"
@@ -905,7 +905,7 @@ function PhaseCard({ fase, index, isLast }: PhaseCardProps) {
         "relative flex gap-5 animate-fade-in",
         isLast ? "mb-0" : "mb-3.5",
       )}
-      style={{ animationDelay, opacity: 0 }}
+      style={{ animationDelay }}
     >
       <div
         className="relative z-10 mt-[3px] flex h-[44px] w-[44px] flex-shrink-0 items-center justify-center rounded-full text-[15px]"
