@@ -232,20 +232,167 @@ body.public-view {
   animation: shimmer 2.5s linear infinite;
 }
 
-/* Scrollbar dark */
+/* Scrollbar theme-aware (subtle, no tracks visibles) */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-s1);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-b1);
   border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-b2);
+  background-clip: content-box;
+}
+
+/* ════════════════════════════════════════════════════════
+   Admin shell — capa premium que aplica el wrapper del admin
+   Aurora (2 blobs), mesh dot-grid con mask, noise sutil.
+   NO tocar en cards ni en .public-view-wrap.
+   ════════════════════════════════════════════════════════ */
+.admin-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+}
+/* Aurora: blobs radiales suaves */
+.admin-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 50% at 12% -10%, rgba(124, 58, 237, 0.16), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 90% 110%, rgba(59, 130, 246, 0.10), transparent 60%);
+  transition: opacity 300ms;
+}
+html[data-theme="light"] .admin-shell::before {
+  background:
+    radial-gradient(ellipse 60% 50% at 12% -10%, rgba(124, 58, 237, 0.10), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 90% 110%, rgba(59, 130, 246, 0.06), transparent 60%);
+}
+/* Dot-grid con mask radial para desvanecer en bordes */
+.admin-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.035) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    rgba(0, 0, 0, 0.8),
+    transparent 90%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    rgba(0, 0, 0, 0.8),
+    transparent 90%
+  );
+}
+html[data-theme="light"] .admin-shell::after {
+  background-image: radial-gradient(
+    circle,
+    rgba(23, 19, 32, 0.05) 1px,
+    transparent 1px
+  );
+}
+
+/* ════════════════════════════════════════════════════════
+   Glass utilities para Topbar / Command Palette / Toasts
+   NO para content cards (arruina el contraste)
+   ════════════════════════════════════════════════════════ */
+.glass-panel {
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-b1) 70%, transparent);
+}
+
+/* ════════════════════════════════════════════════════════
+   Gradient border — borde cónico sutil para cards hover/active
+   Usage: <div class="card-elevated">...</div>
+   ════════════════════════════════════════════════════════ */
+.card-elevated {
+  position: relative;
+  background: var(--color-s1);
+  border: 1px solid var(--color-b1);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 200ms;
+}
+.card-elevated:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-b2);
+  box-shadow: var(--shadow-lg);
+}
+.card-elevated.is-active {
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-brand) 40%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--color-brand) 8%, transparent),
+    var(--shadow-glow);
+}
+
+/* Conic gradient border wrapper para estado "hero/active" */
+.gradient-border {
+  position: relative;
+  background: var(--color-s1);
+  border-radius: 12px;
+}
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    var(--color-brand) 0deg,
+    color-mix(in srgb, var(--color-brand) 40%, transparent) 120deg,
+    var(--color-brand) 240deg,
+    color-mix(in srgb, var(--color-brand) 40%, transparent) 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════
+   Kbd inline — shortcuts visuales
+   ════════════════════════════════════════════════════════ */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--color-t2);
+  background: color-mix(in srgb, var(--color-s3) 70%, transparent);
+  border: 1px solid var(--color-b1);
+  border-radius: 5px;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-b2) 60%, transparent);
 }
 
 /* Util animations */

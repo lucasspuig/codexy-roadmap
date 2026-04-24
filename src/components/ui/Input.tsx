@@ -7,8 +7,14 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     <input
       ref={ref}
       className={cn(
-        "w-full bg-[var(--color-s2)] border border-[var(--color-b1)] rounded-[8px] text-sm text-[var(--color-t1)] px-3.5 py-2.5 transition-colors placeholder:text-[var(--color-t3)]",
-        "focus:outline-none focus:border-[var(--color-info)]",
+        "w-full bg-[var(--color-s2)] border border-[var(--color-b1)] rounded-[8px]",
+        "text-sm text-[var(--color-t1)] px-3.5 py-2.5",
+        "placeholder:text-[var(--color-t3)]",
+        "transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "hover:border-[var(--color-b2)]",
+        "focus:outline-none focus:border-[color-mix(in_srgb,var(--color-brand)_60%,transparent)]",
+        "focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-brand)_18%,transparent)]",
+        "focus:bg-[var(--color-s1)]",
         "disabled:opacity-50",
         className,
       )}
@@ -25,8 +31,14 @@ export const Textarea = forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      "w-full bg-[var(--color-s2)] border border-[var(--color-b1)] rounded-[8px] text-[13px] text-[var(--color-t2)] px-3.5 py-2.5 transition-colors placeholder:text-[var(--color-t3)] resize-y min-h-[60px] leading-[1.6]",
-      "focus:outline-none focus:border-[var(--color-info)] focus:text-[var(--color-t1)]",
+      "w-full bg-[var(--color-s2)] border border-[var(--color-b1)] rounded-[8px]",
+      "text-[13px] text-[var(--color-t2)] px-3.5 py-2.5",
+      "placeholder:text-[var(--color-t3)] resize-y min-h-[60px] leading-[1.6]",
+      "transition-all duration-150 ease-[cubic-bezier(0.22,1,0.36,1)]",
+      "hover:border-[var(--color-b2)]",
+      "focus:outline-none focus:border-[color-mix(in_srgb,var(--color-brand)_60%,transparent)]",
+      "focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-brand)_18%,transparent)]",
+      "focus:bg-[var(--color-s1)] focus:text-[var(--color-t1)]",
       "disabled:opacity-50",
       className,
     )}

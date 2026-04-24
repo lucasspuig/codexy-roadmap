@@ -35,13 +35,36 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen">
+    <div className="admin-shell flex-1 flex flex-col min-h-screen">
       <Topbar
         userEmail={profile.email ?? user.email ?? null}
         userName={profile.nombre}
         avatarUrl={profile.avatar_url}
       />
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main className="flex-1 flex flex-col relative z-0">{children}</main>
+      <footer className="hidden sm:flex items-center justify-between gap-3 px-6 lg:px-7 py-3 text-[11px] border-t border-[var(--color-b1)] bg-[var(--color-bg)]/40 backdrop-blur">
+        <div className="flex items-center gap-2 text-[var(--color-t3)]">
+          <span className="font-mono">Codexy Roadmaps</span>
+          <span className="text-[var(--color-b2)]">·</span>
+          <span>v1.0</span>
+        </div>
+        <div className="hidden md:flex items-center gap-3 text-[var(--color-t3)]">
+          <span>
+            <kbd className="kbd">⌘</kbd>
+            <kbd className="kbd ml-1">K</kbd>
+            <span className="ml-1.5">buscar</span>
+          </span>
+          <span>
+            <kbd className="kbd">G</kbd>
+            <kbd className="kbd ml-1">D</kbd>
+            <span className="ml-1.5">dashboard</span>
+          </span>
+          <span>
+            <kbd className="kbd">?</kbd>
+            <span className="ml-1.5">shortcuts</span>
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }
