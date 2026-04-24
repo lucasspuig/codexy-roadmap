@@ -645,7 +645,19 @@ export async function uploadBrandLogo(formData: FormData): Promise<
           : "jpg";
   const path = `${proyectoId}/${Date.now()}.${ext}`;
 
-  const admin = createAdminClient();
+  // Defensa: el service role se necesita para escribir al bucket storage.
+  // Si no está, surface al user un error específico en vez de "unknown error".
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Config inválida";
+    return {
+      ok: false,
+      error: `Config del server incompleta: ${msg}. Revisá la env var SUPABASE_SERVICE_ROLE_KEY en Easypanel.`,
+    };
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
   const { error: upErr } = await admin.storage
     .from("roadmap-branding")
@@ -654,7 +666,14 @@ export async function uploadBrandLogo(formData: FormData): Promise<
       cacheControl: "3600",
       upsert: false,
     });
-  if (upErr) return { ok: false, error: upErr.message };
+  if (upErr) {
+    // Errores comunes de storage: key inválida, bucket no existe, tamaño, etc.
+    const hint = upErr.message.toLowerCase().includes("jwt") ||
+      upErr.message.toLowerCase().includes("unauthorized")
+      ? " (probable: SUPABASE_SERVICE_ROLE_KEY mal cargada en Easypanel)"
+      : "";
+    return { ok: false, error: `${upErr.message}${hint}` };
+  }
 
   const { data: pub } = admin.storage.from("roadmap-branding").getPublicUrl(path);
   const url = pub.publicUrl;

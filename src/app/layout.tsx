@@ -13,13 +13,45 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://plan.codexyoficial.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: {
     default: "Codexy · Panel de roadmaps",
     template: "%s · Codexy",
   },
-  description: "Seguimiento de implementaciones de clientes Codexy",
+  description:
+    "Seguimiento en tiempo real del plan de implementación con Codexy. Sistemas inteligentes para clínicas.",
+  applicationName: "Codexy Roadmaps",
+  authors: [{ name: "Codexy", url: "https://codexyoficial.com" }],
   robots: { index: false, follow: false },
+  openGraph: {
+    type: "website",
+    siteName: "Codexy",
+    title: "Codexy · Plan de implementación",
+    description:
+      "Seguimiento en tiempo real del plan de implementación con Codexy. Sistemas inteligentes para clínicas.",
+    images: [
+      {
+        url: "/brand/codexy-full-black.png",
+        width: 1200,
+        height: 630,
+        alt: "Codexy",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Codexy · Plan de implementación",
+    description: "Seguimiento en tiempo real con Codexy",
+    images: ["/brand/codexy-full-black.png"],
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

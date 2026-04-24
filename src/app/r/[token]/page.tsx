@@ -25,11 +25,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
   const data = await loadPublicRoadmap(token).catch(() => null);
   const nombre = data?.cliente?.nombre ?? "cliente";
+  const subtitulo =
+    data?.proyecto?.subtitulo ??
+    "Seguimiento en vivo del plan de implementación de tu proyecto con Codexy.";
+  const ogImage = data?.branding?.logo_url ?? "/brand/codexy-full-black.png";
   return {
     title: `Plan de implementación · ${nombre}`,
-    description:
-      data?.proyecto?.subtitulo ??
-      "Seguimiento en vivo del plan de implementación de tu proyecto con Codexy.",
+    description: subtitulo,
     robots: {
       index: false,
       follow: false,
@@ -38,8 +40,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     openGraph: {
       title: `Plan de implementación · ${nombre}`,
-      description: "Seguimiento en vivo del plan con Codexy",
+      description: subtitulo,
+      siteName: "Codexy",
       type: "website",
+      images: [{ url: ogImage, alt: `Plan de implementación · ${nombre}` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `Plan de implementación · ${nombre}`,
+      description: "Seguimiento en vivo con Codexy",
+      images: [ogImage],
+    },
+    icons: {
+      icon: "/icon.svg",
+      apple: "/apple-icon.svg",
     },
   };
 }
