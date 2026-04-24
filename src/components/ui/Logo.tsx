@@ -71,12 +71,23 @@ export function Logo({
 export function LogoFull({
   height = 32,
   className,
-  variant = "dark",
+  tone = "adaptive",
 }: {
   height?: number;
   className?: string;
-  variant?: "dark" | "light";
+  /**
+   * adaptive: se invierte en dark mode, queda negro en light mode
+   * white: siempre blanco (para fondos de marca púrpura)
+   * black: siempre negro (para fondos claros garantizados)
+   */
+  tone?: "adaptive" | "white" | "black";
 }) {
+  const filter =
+    tone === "white"
+      ? "invert(1) brightness(2)"
+      : tone === "black"
+        ? undefined
+        : "var(--logo-adaptive-filter)";
   return (
     <span className={cn("inline-flex items-center", className)} aria-label="Codexy">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -85,10 +96,7 @@ export function LogoFull({
         alt="Codexy"
         height={height}
         className="w-auto object-contain"
-        style={{
-          height,
-          filter: variant === "light" ? "invert(1) brightness(2)" : undefined,
-        }}
+        style={{ height, filter }}
         loading="eager"
         decoding="async"
       />

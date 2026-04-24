@@ -6,6 +6,7 @@ import { LogOut, LayoutDashboard } from "lucide-react";
 import { useTransition } from "react";
 
 import { Logo } from "@/components/ui/Logo";
+import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/login/actions";
 
@@ -72,7 +73,8 @@ export function Topbar({ userEmail, userName, avatarUrl }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="hidden sm:flex items-center gap-2.5 pr-1">
+        <ThemeToggle />
+        <div className="hidden sm:flex items-center gap-2.5 pr-1 sm:ml-1">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Codexy brand palette */
+  /* ═══ Admin palette — DARK (default) ═══ */
   --color-bg: #0c0c0e;
   --color-s1: #151518;
   --color-s2: #1c1c20;
@@ -12,7 +12,6 @@
   --color-t1: #eae8e2;
   --color-t2: #a09e96;
   --color-t3: #706e68;
-  /* Codexy brand purple */
   --color-brand: #8b5cf6;
   --color-brand-muted: rgba(139, 92, 246, 0.1);
   --color-brand-border: rgba(139, 92, 246, 0.3);
@@ -23,7 +22,13 @@
   --color-danger: #f87171;
   --color-danger-muted: rgba(248, 113, 113, 0.08);
 
-  /* Public view palette (cliente) — dark tech Codexy */
+  /* Elevation (shadows) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 12px 40px -10px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 24px -6px rgba(139, 92, 246, 0.35);
+
+  /* Public view palette (cliente) — dark tech, NO cambia con el toggle */
   --color-pub-bg: #09090b;
   --color-pub-bg-2: #0d0d12;
   --color-pub-surface: #111114;
@@ -39,9 +44,64 @@
   --color-pub-info: #8b5cf6;
   --color-pub-info-l: rgba(124, 58, 237, 0.14);
 
-  /* Geist fonts desde next/font */
   --ff-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --ff-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ═══ Admin palette — LIGHT (aplicado cuando html[data-theme="light"]) ═══ */
+/* Filtro del logo horizontal que se adapta al theme.
+   dark: invierte (logo negro → blanco para contrastar con fondo oscuro)
+   light: sin cambios (logo negro sobre fondo claro) */
+:root {
+  --logo-adaptive-filter: invert(1) brightness(2);
+}
+html[data-theme="light"] {
+  --logo-adaptive-filter: none;
+}
+
+html[data-theme="light"] {
+  --color-bg: #fafaf7;
+  --color-s1: #ffffff;
+  --color-s2: #f6f5f1;
+  --color-s3: #efede8;
+  --color-b1: #e5e3dc;
+  --color-b2: #d2cfc5;
+  --color-b3: #a8a49a;
+  --color-t1: #171320;
+  --color-t2: #4a4455;
+  --color-t3: #7e7888;
+  --color-brand: #7c3aed;
+  --color-brand-muted: rgba(124, 58, 237, 0.09);
+  --color-brand-border: rgba(124, 58, 237, 0.28);
+  --color-info: #7c3aed;
+  --color-info-muted: rgba(124, 58, 237, 0.09);
+  --color-info-border: rgba(124, 58, 237, 0.28);
+  --color-warn: #b45309;
+  --color-danger: #b91c1c;
+  --color-danger-muted: rgba(185, 28, 28, 0.07);
+
+  --shadow-sm: 0 1px 2px rgba(23, 19, 32, 0.05);
+  --shadow-md: 0 4px 16px -4px rgba(23, 19, 32, 0.08);
+  --shadow-lg: 0 20px 48px -16px rgba(23, 19, 32, 0.15);
+  --shadow-glow: 0 0 28px -8px rgba(124, 58, 237, 0.25);
+}
+
+/* Transición suave al togglear theme (pero no durante load) */
+html.theme-ready,
+html.theme-ready *,
+html.theme-ready *::before,
+html.theme-ready *::after {
+  transition:
+    background-color 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    fill 250ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* ...pero no en la vista pública, que siempre es dark */
+.public-view-wrap,
+.public-view-wrap * {
+  transition: none;
 }
 
 * {
