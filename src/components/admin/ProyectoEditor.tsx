@@ -39,6 +39,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/Input";
 import { BrandingSection } from "@/components/admin/BrandingSection";
 import { ClientEditDialog } from "@/components/admin/ClientEditDialog";
+import { ContratosSection } from "@/components/admin/ContratosSection";
 import { ConfirmDialog } from "@/components/admin/Dialog";
 import { ProgressBar } from "@/components/admin/ProgressBar";
 import { createClient } from "@/lib/supabase/client";
@@ -714,6 +715,18 @@ export function ProyectoEditor({
               initialColors={proyecto.brand_colors}
             />
           </div>
+
+          {/* Contratos */}
+          {cliente ? (
+            <div className="mt-6">
+              <ContratosSection
+                clienteId={cliente.id}
+                proyectoId={proyecto.id}
+                clienteNombre={cliente.nombre}
+                clienteEmpresa={cliente.empresa}
+              />
+            </div>
+          ) : null}
         </div>
 
         {/* RIGHT */}

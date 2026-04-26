@@ -10,12 +10,13 @@ export const config = {
   matcher: [
     /*
      * Excluye:
-     * - /r/[token] (vista pública del cliente)
+     * - /r/[token] (vista pública del cliente — roadmap)
+     * - /c/[token] (vista pública del cliente — contrato a firmar)
      * - /api/public/* (endpoints públicos con token)
      * - /_next/static
      * - /_next/image
      * - favicon.ico, og.png
      */
-    "/((?!r/|api/public/|_next/static|_next/image|favicon.ico|og.png).*)",
+    "/((?!r/|c/|api/public/|_next/static|_next/image|favicon.ico|og.png).*)",
   ],
 };

@@ -318,6 +318,384 @@ html[data-theme="light"] .admin-shell::after {
 }
 
 /* ════════════════════════════════════════════════════════
+   Contrato document — estilos compartidos /imprimir + /c/[token]
+   Variables locales para que ambos contextos (admin y público)
+   apliquen la misma tipografía y un color base controlado.
+   ════════════════════════════════════════════════════════ */
+.contrato-doc {
+  --cd-text: #0a0a0a;
+  --cd-text-muted: #4a4a4a;
+  --cd-text-soft: #6e6e6e;
+  --cd-border: #d5d5d8;
+  --cd-border-soft: #e8e8ec;
+  --cd-accent: #6d28d9;
+  --cd-accent-soft: rgba(109, 40, 217, 0.08);
+  --cd-bg-soft: #fafafa;
+  font-family: var(--ff-sans);
+  font-size: 11pt;
+  line-height: 1.55;
+  color: var(--cd-text);
+  background: #ffffff;
+  padding: 18mm 14mm;
+  max-width: 210mm;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+.contrato-doc.contrato-doc-screen,
+.contrato-doc-screen-wrap > .contrato-doc {
+  /* Cuando se renderiza en pantalla (no print), agregamos sombra y radio */
+  border-radius: 12px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.contrato-doc-screen-wrap {
+  margin: 0 auto;
+}
+.contrato-mono {
+  font-family: var(--ff-mono);
+}
+
+.contrato-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12pt;
+  border-bottom: 1px solid var(--cd-border);
+  margin-bottom: 14pt;
+}
+.contrato-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.contrato-brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--cd-accent);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.contrato-brand-x {
+  font-family: var(--ff-mono);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.04em;
+}
+.contrato-brand-name {
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--cd-text);
+}
+.contrato-brand-sub {
+  font-size: 8.5pt;
+  color: var(--cd-text-soft);
+  letter-spacing: 0.04em;
+}
+.contrato-meta {
+  text-align: right;
+}
+.contrato-meta-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: flex-end;
+  font-size: 9pt;
+  margin-bottom: 2pt;
+}
+.contrato-meta-label {
+  color: var(--cd-text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 8.5pt;
+}
+.contrato-meta-value {
+  color: var(--cd-text);
+  font-weight: 600;
+}
+
+.contrato-title-wrap {
+  text-align: center;
+  margin: 10pt 0 16pt;
+}
+.contrato-title {
+  font-size: 20pt;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cd-text);
+  margin: 0 0 4pt;
+}
+.contrato-subtitle {
+  font-size: 11pt;
+  color: var(--cd-text-muted);
+  margin: 0;
+}
+
+.contrato-section {
+  margin: 14pt 0;
+}
+.contrato-h2 {
+  font-size: 12pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--cd-text);
+  margin: 0 0 8pt;
+  padding-bottom: 4pt;
+  border-bottom: 1px solid var(--cd-border-soft);
+}
+.contrato-paragraph {
+  margin: 0 0 6pt;
+  font-size: 10.5pt;
+  line-height: 1.55;
+}
+
+.contrato-clauses {
+  list-style: none;
+  counter-reset: contrato-clause;
+  padding-left: 0;
+  margin: 0;
+}
+.contrato-clauses > li {
+  counter-increment: contrato-clause;
+  position: relative;
+  padding-left: 22pt;
+  margin-bottom: 9pt;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  text-align: justify;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.contrato-clauses > li::before {
+  content: counter(contrato-clause) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 18pt;
+  font-weight: 700;
+  color: var(--cd-accent);
+  font-family: var(--ff-mono);
+  font-size: 10pt;
+}
+.contrato-clauses strong {
+  color: var(--cd-text);
+}
+.contrato-sublist {
+  margin: 4pt 0 4pt;
+  padding-left: 16pt;
+  list-style: disc;
+}
+.contrato-sublist > li {
+  margin-bottom: 2pt;
+  font-size: 10pt;
+  color: var(--cd-text-muted);
+}
+.contrato-sublist-excl > li {
+  color: var(--cd-text-soft);
+}
+.contrato-not-includes {
+  display: block;
+  margin-top: 4pt;
+  font-weight: 600;
+  font-size: 10pt;
+  color: var(--cd-text-muted);
+}
+
+.contrato-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  margin-top: 4pt;
+}
+.contrato-table th,
+.contrato-table td {
+  padding: 6pt 8pt;
+  border-bottom: 1px solid var(--cd-border-soft);
+  text-align: left;
+  vertical-align: top;
+}
+.contrato-table thead th {
+  background: var(--cd-accent-soft);
+  color: var(--cd-text);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 8.5pt;
+  border-bottom: 1px solid var(--cd-border);
+}
+.contrato-th-right,
+.contrato-td-right {
+  text-align: right;
+}
+.contrato-td-soft {
+  color: var(--cd-text-soft);
+}
+.contrato-tr-total td {
+  border-top: 2px solid var(--cd-text);
+  border-bottom: none;
+  padding-top: 8pt;
+}
+.contrato-td-total {
+  font-weight: 700;
+  color: var(--cd-text);
+  font-size: 10.5pt;
+}
+
+.contrato-info-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8pt 12pt;
+  background: var(--cd-accent-soft);
+  border-radius: 6px;
+  border-left: 3px solid var(--cd-accent);
+}
+.contrato-info-label {
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cd-text-muted);
+}
+.contrato-info-value {
+  font-weight: 700;
+  font-size: 10.5pt;
+  color: var(--cd-text);
+}
+
+.contrato-firmas-section {
+  margin-top: 22pt;
+  page-break-before: auto;
+}
+.contrato-firmas-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24pt;
+  margin-top: 8pt;
+}
+.contrato-firma-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.contrato-firma-rol {
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--cd-text-soft);
+  margin-bottom: 6pt;
+  text-transform: uppercase;
+}
+.contrato-firma-img {
+  width: 100%;
+  height: 60pt;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: 4pt;
+}
+.contrato-firma-img img {
+  max-width: 70%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.contrato-firma-pending {
+  font-size: 9pt;
+  color: var(--cd-text-soft);
+  font-style: italic;
+}
+.contrato-firma-line {
+  width: 80%;
+  border-bottom: 1px solid var(--cd-text);
+  margin-bottom: 4pt;
+}
+.contrato-firma-name {
+  font-weight: 700;
+  font-size: 10.5pt;
+  color: var(--cd-text);
+}
+.contrato-firma-role {
+  font-size: 9.5pt;
+  color: var(--cd-text-muted);
+}
+.contrato-firma-fecha {
+  font-size: 8.5pt;
+  color: var(--cd-text-soft);
+  margin-top: 2pt;
+}
+
+.contrato-footer {
+  margin-top: 22pt;
+  padding-top: 8pt;
+  border-top: 1px solid var(--cd-border-soft);
+  font-size: 8.5pt;
+  color: var(--cd-text-soft);
+  text-align: center;
+}
+
+/* ── Print contrato ─────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 14mm;
+    @bottom-center {
+      content: "Página " counter(page) " de " counter(pages);
+      font-family: var(--ff-mono);
+      font-size: 8pt;
+      color: #6e6e6e;
+    }
+  }
+  .contrato-doc {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  /* Forzá colores de print en todos los descendientes del documento */
+  .contrato-doc * {
+    color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .contrato-print-floating {
+    display: none !important;
+  }
+}
+
+/* Botón flotante "Descargar PDF" */
+.contrato-print-floating {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--color-brand);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--ff-sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 12px 30px -8px rgba(124, 58, 237, 0.55);
+  transition: transform 150ms ease, box-shadow 200ms ease;
+}
+.contrato-print-floating:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 40px -8px rgba(124, 58, 237, 0.7);
+}
+
+/* ════════════════════════════════════════════════════════
    Glass utilities para Topbar / Command Palette / Toasts
    NO para content cards (arruina el contraste)
    ════════════════════════════════════════════════════════ */

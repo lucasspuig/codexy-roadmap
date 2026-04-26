@@ -168,6 +168,18 @@ export type Database = {
         Update: Partial<Profile>;
         Relationships: [];
       };
+      contratos: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      agency_settings: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: {
