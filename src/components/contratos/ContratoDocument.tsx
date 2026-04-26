@@ -147,6 +147,23 @@ export function ContratoDocument({
                   <td />
                 </tr>
               ) : null}
+              {/* Mantenimiento mensual extra: solo para tipo Implementación con
+                   modalidad no-mensual que igual definió un valor recurrente. */}
+              {isImpl &&
+              contrato.modalidad_pago !== "unico_mas_mensual" &&
+              typeof contrato.mantenimiento_mensual === "number" &&
+              contrato.mantenimiento_mensual > 0 ? (
+                <tr>
+                  <td>Mantenimiento mensual</td>
+                  <td className="contrato-td-right">—</td>
+                  <td className="contrato-td-right contrato-mono">
+                    {fmtMoney(contrato.mantenimiento_mensual, contrato.moneda)}
+                  </td>
+                  <td className="contrato-td-soft">
+                    Recurrente, día 1 de cada mes posterior a la entrega
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </section>
@@ -283,8 +300,9 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
           <strong>Mantenimiento Futuro.</strong>{" "}
           {tieneMant ? (
             <>
-              {fmtMoney(mensual!, moneda)} mensual, día 1 de cada mes; mora{" "}
-              {mora}% acumulativo después de {dias} días.{" "}
+              {fmtMoney(mensual!, moneda)} mensual, día 1 de cada mes
+              calendario, comenzando al mes siguiente de la entrega del sistema;
+              mora {mora}% acumulativo después de {dias} días.{" "}
             </>
           ) : (
             "El mantenimiento mensual será definido al finalizar la implementación. "
@@ -293,6 +311,15 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
           necesarios para la operación normal del sistema. No incluye nuevas
           funcionalidades, cambios estructurales, integraciones adicionales ni
           ampliación de alcance.
+          {tieneMant ? (
+            <>
+              {" "}
+              La cuota podrá ser revisada y ajustada cada tres (3) meses según
+              el desempeño del sistema, el volumen de uso real y el consumo de
+              tokens de IA y servidor; cualquier ajuste será comunicado con al
+              menos quince (15) días de anticipación.
+            </>
+          ) : null}
         </li>
         <li>
           <strong>Costos de Plataformas Externas.</strong> El sistema puede

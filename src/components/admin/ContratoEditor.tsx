@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2, Lock, Save } from "lucide-react";
+import { ExternalLink, Loader2, Lock, Plus, Save, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
@@ -175,7 +175,11 @@ export function ContratoEditor({
     }
 
     const hasImpl = tieneImplementacion(contrato.tipo);
-    const hasMant = tieneMantenimiento(contrato.tipo, modalidad);
+    const autoMant = tieneMantenimiento(contrato.tipo, modalidad);
+    // Persistir si el usuario puso un valor explícito > 0, aún sin auto.
+    const persistMant =
+      autoMant ||
+      (Number.isFinite(mensualNum) && mensualNum > 0 && hasImpl);
 
     const res = await updateContrato({
       id: contrato.id,
@@ -189,13 +193,13 @@ export function ContratoEditor({
         moneda,
         modalidad_pago: modalidad,
         detalle_pagos: detalle,
-        mantenimiento_mensual: hasMant
+        mantenimiento_mensual: persistMant
           ? Number.isFinite(mensualNum)
             ? mensualNum
             : null
           : null,
-        mora_porcentaje: hasMant ? Number.parseFloat(mora) || null : null,
-        dias_gracia: hasMant ? Number.parseFloat(gracia) || null : null,
+        mora_porcentaje: persistMant ? Number.parseFloat(mora) || null : null,
+        dias_gracia: persistMant ? Number.parseFloat(gracia) || null : null,
         notas_internas: notas.trim() || undefined,
       },
     });
@@ -358,8 +362,51 @@ export function ContratoEditor({
               </select>
             </div>
           </div>
-          {tieneMantenimiento(contrato.tipo, modalidad) ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s2)]/40">
+          {(() => {
+            const auto = tieneMantenimiento(contrato.tipo, modalidad);
+            const tieneValor =
+              mantenimiento.trim() !== "" &&
+              Number.parseFloat(mantenimiento) > 0;
+            const showFields = auto || tieneValor;
+            const puedeQuitar = !auto && tieneValor;
+            const puedeAgregar = !auto && !tieneValor;
+
+            if (puedeAgregar) {
+              return (
+                <button
+                  type="button"
+                  onClick={() => setMantenimiento("0")}
+                  className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-medium rounded-[8px] border border-dashed border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] hover:bg-[var(--color-brand-muted)] transition-colors"
+                >
+                  <Plus size={12} />
+                  Sumar mantenimiento mensual posterior
+                </button>
+              );
+            }
+
+            return showFields ? (
+              <div className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s2)]/40 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Wrench size={12} className="text-[var(--color-info)]" />
+                  <span className="text-[11.5px] font-semibold text-[var(--color-t1)]">
+                    Mantenimiento mensual
+                  </span>
+                  {puedeQuitar ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMantenimiento("");
+                        setMora("");
+                        setGracia("");
+                      }}
+                      title="Quitar mantenimiento mensual"
+                      className="ml-auto inline-flex items-center justify-center h-6 w-6 rounded text-[var(--color-t3)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger-muted)]"
+                    >
+                      <X size={11} />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label htmlFor="ce-mens">Cuota mensual</Label>
                 <Input
@@ -393,8 +440,10 @@ export function ContratoEditor({
                   onChange={(e) => setGracia(e.target.value)}
                 />
               </div>
-            </div>
-          ) : null}
+                </div>
+              </div>
+            ) : null;
+          })()}
           <div>
             <Label htmlFor="ce-notas">Notas internas (privadas)</Label>
             <Textarea

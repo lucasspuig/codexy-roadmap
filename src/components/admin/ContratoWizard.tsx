@@ -64,6 +64,9 @@ interface WizardState {
   mantenimiento_mensual: string;
   mora_porcentaje: string;
   dias_gracia: string;
+  /** Solo aplica a tipo "implementacion" con modalidad no-mensual. Toggle para sumar
+   * una cuota mensual de mantenimiento posterior al desarrollo inicial. */
+  incluir_mantenimiento: boolean;
 }
 
 const STEPS = [
@@ -122,6 +125,7 @@ function initialState(
   nombre: string,
 ): WizardState {
   const al = defaultsAlcanceFor(tipo);
+  const modalidad = defaultModalidadFor(tipo);
   return {
     tipo,
     servicio_titulo: defaultTituloFor(tipo, empresa, nombre),
@@ -131,11 +135,12 @@ function initialState(
     plazo_implementacion: tieneImplementacion(tipo) ? "3 a 6 semanas" : "",
     monto_total: "",
     moneda: "USD",
-    modalidad_pago: defaultModalidadFor(tipo),
+    modalidad_pago: modalidad,
     detalle_pagos: [],
     mantenimiento_mensual: "",
     mora_porcentaje: "10",
     dias_gracia: "5",
+    incluir_mantenimiento: tieneMantenimiento(tipo, modalidad),
   };
 }
 
@@ -170,6 +175,7 @@ export function ContratoWizard({
   function changeTipo(tipo: ContratoTipo) {
     // Re-aplica defaults consistentes con el nuevo tipo
     const al = defaultsAlcanceFor(tipo);
+    const modalidad = defaultModalidadFor(tipo);
     setState((s) => ({
       ...s,
       tipo,
@@ -177,7 +183,8 @@ export function ContratoWizard({
       alcance_items: al.items,
       alcance_excluye: al.excluye,
       plazo_implementacion: tieneImplementacion(tipo) ? "3 a 6 semanas" : "",
-      modalidad_pago: defaultModalidadFor(tipo),
+      modalidad_pago: modalidad,
+      incluir_mantenimiento: tieneMantenimiento(tipo, modalidad),
     }));
   }
 
@@ -272,6 +279,11 @@ export function ContratoWizard({
       const m = Number.parseFloat(state.mantenimiento_mensual);
       if (!Number.isFinite(m) || m <= 0) return false;
     }
+    // Si activó mantenimiento posterior, exigir cuota > 0
+    if (state.incluir_mantenimiento && state.tipo === "implementacion") {
+      const m = Number.parseFloat(state.mantenimiento_mensual);
+      if (!Number.isFinite(m) || m <= 0) return false;
+    }
     if (state.modalidad_pago === "custom" && state.detalle_pagos.length === 0) {
       return false;
     }
@@ -293,6 +305,9 @@ export function ContratoWizard({
       state.modalidad_pago === "custom"
         ? state.detalle_pagos
         : computedDetalle;
+    const persistMantenimiento =
+      tieneMantenimiento(state.tipo, state.modalidad_pago) ||
+      (state.tipo === "implementacion" && state.incluir_mantenimiento);
 
     const res = await createContrato({
       cliente_id: clienteId,
@@ -314,20 +329,17 @@ export function ContratoWizard({
       moneda: state.moneda,
       modalidad_pago: state.modalidad_pago,
       detalle_pagos: detalle,
-      mantenimiento_mensual: tieneMantenimiento(
-        state.tipo,
-        state.modalidad_pago,
-      )
+      mantenimiento_mensual: persistMantenimiento
         ? Number.isFinite(mensual)
           ? mensual
           : null
         : null,
-      mora_porcentaje: tieneMantenimiento(state.tipo, state.modalidad_pago)
+      mora_porcentaje: persistMantenimiento
         ? Number.isFinite(mora)
           ? mora
           : null
         : null,
-      dias_gracia: tieneMantenimiento(state.tipo, state.modalidad_pago)
+      dias_gracia: persistMantenimiento
         ? Number.isFinite(gracia)
           ? gracia
           : null
@@ -720,12 +732,18 @@ function Step3({
     });
   }
 
-  const showMantenimientoFields = tieneMantenimiento(
+  const autoMantenimiento = tieneMantenimiento(
     state.tipo,
     state.modalidad_pago,
   );
   const isCombo = state.tipo === "implementacion_y_mantenimiento";
   const isMantOnly = state.tipo === "mantenimiento";
+  // Para tipo Implementación con modalidades no-mensuales, el mantenimiento es opcional.
+  const puedeAgregarMantenimiento =
+    state.tipo === "implementacion" && !autoMantenimiento;
+  const showMantenimientoFields =
+    autoMantenimiento ||
+    (puedeAgregarMantenimiento && state.incluir_mantenimiento);
   const montoLabel = isCombo
     ? "Pago único de implementación *"
     : isMantOnly
@@ -801,6 +819,28 @@ function Step3({
             ))}
           </div>
         </div>
+      ) : null}
+
+      {puedeAgregarMantenimiento ? (
+        <label className="flex items-start gap-2 text-[12.5px] text-[var(--color-t2)] cursor-pointer select-none p-3 rounded-[10px] border border-dashed border-[var(--color-b1)] bg-[var(--color-s2)]/30 hover:border-[var(--color-b2)] transition-colors">
+          <input
+            type="checkbox"
+            checked={state.incluir_mantenimiento}
+            onChange={(e) =>
+              onChange({ incluir_mantenimiento: e.target.checked })
+            }
+            className="w-3.5 h-3.5 mt-0.5 accent-[var(--color-brand)]"
+          />
+          <span className="flex-1">
+            <span className="block font-semibold text-[var(--color-t1)]">
+              Sumar mantenimiento mensual posterior
+            </span>
+            <span className="text-[11.5px] text-[var(--color-t3)] block leading-relaxed mt-0.5">
+              Cobrá una cuota mensual recurrente al cliente además del pago de
+              implementación. Cubre soporte, servidor y tokens IA.
+            </span>
+          </span>
+        </label>
       ) : null}
 
       {showMantenimientoFields ? (
