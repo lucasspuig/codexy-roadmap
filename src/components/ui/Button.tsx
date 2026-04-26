@@ -14,12 +14,12 @@ const buttonStyles = cva(
     variants: {
       variant: {
         primary: [
-          "text-white",
-          // Gradient top→bottom para sensación premium
-          "bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-brand)_120%,#fff_10%),var(--color-brand))]",
-          // Inner highlight + sombra sutil
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_2px_6px_-2px_color-mix(in_srgb,var(--color-brand)_60%,transparent)]",
-          "hover:brightness-108 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_6px_20px_-4px_color-mix(in_srgb,var(--color-brand)_50%,transparent)]",
+          "text-white bg-[var(--color-brand)]",
+          // Gradient sutil top→bottom para sensación premium (porcentajes válidos)
+          "bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-brand)_88%,#fff_12%)_0%,var(--color-brand)_100%)]",
+          // Inner highlight + sombra sutil con tint de brand
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_2px_6px_-2px_color-mix(in_srgb,var(--color-brand)_60%,transparent)]",
+          "hover:brightness-110 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_6px_20px_-4px_color-mix(in_srgb,var(--color-brand)_50%,transparent)]",
           "active:brightness-95",
         ].join(" "),
         secondary: [
@@ -33,8 +33,9 @@ const buttonStyles = cva(
         danger:
           "bg-transparent border border-[rgba(248,113,113,0.25)] text-[var(--color-danger)] hover:bg-[var(--color-danger-muted)] hover:border-[rgba(248,113,113,0.45)]",
         dangerSolid: [
-          "bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-danger)_115%,#fff_10%),var(--color-danger))]",
-          "text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]",
+          "text-white bg-[var(--color-danger)]",
+          "bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-danger)_88%,#fff_12%)_0%,var(--color-danger)_100%)]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_2px_6px_-2px_color-mix(in_srgb,var(--color-danger)_55%,transparent)]",
           "hover:brightness-110",
         ].join(" "),
       },
