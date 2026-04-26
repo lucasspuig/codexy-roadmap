@@ -45,16 +45,21 @@ export function facturadoDeContrato(
   const cuota = contrato.mantenimiento_mensual ?? 0;
   const inicio =
     contrato.fecha_firmado_completo ?? contrato.fecha_emision ?? null;
+  const meses = mesesTranscurridos(inicio, hasta);
 
   if (contrato.modalidad_pago === "mensual") {
-    return cuota * mesesTranscurridos(inicio, hasta);
+    return cuota * meses;
   }
   if (contrato.modalidad_pago === "unico_mas_mensual") {
     // Implementación (pago único) + mensualidades vencidas
-    const meses = mesesTranscurridos(inicio, hasta);
     return contrato.monto_total + cuota * Math.max(0, meses - 1); // primer mes suele ir con la entrega
   }
-  // unico, 50_50, custom → monto total upfront
+  // unico, 50_50, custom: monto total upfront. Si además se cargó una
+  // cuota mensual opcional (Implementación + mantenimiento posterior),
+  // sumamos las mensualidades vencidas a partir del segundo mes.
+  if (cuota > 0) {
+    return contrato.monto_total + cuota * Math.max(0, meses - 1);
+  }
   return contrato.monto_total;
 }
 

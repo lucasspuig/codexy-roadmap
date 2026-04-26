@@ -321,10 +321,9 @@ export function ContratoWizard({
       alcance_excluye: state.alcance_excluye
         .map((s) => s.trim())
         .filter((s) => s.length > 0),
-      plazo_implementacion:
-        state.tipo === "implementacion"
-          ? state.plazo_implementacion.trim() || undefined
-          : undefined,
+      plazo_implementacion: tieneImplementacion(state.tipo)
+        ? state.plazo_implementacion.trim() || undefined
+        : undefined,
       monto_total: monto,
       moneda: state.moneda,
       modalidad_pago: state.modalidad_pago,
@@ -612,7 +611,7 @@ function Step2({
         onChange={(items) => onChange({ alcance_excluye: items })}
         placeholder="Ej. Campañas publicitarias"
       />
-      {state.tipo === "implementacion" ? (
+      {tieneImplementacion(state.tipo) ? (
         <div>
           <Label htmlFor="cw-plazo">Plazo de implementación</Label>
           <Input

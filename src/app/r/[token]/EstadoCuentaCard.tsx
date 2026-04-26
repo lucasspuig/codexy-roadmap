@@ -12,6 +12,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { facturadoDeContrato } from "@/lib/saldos";
 import { TIPO_LABELS } from "@/types/contratos";
 import {
   PAGO_METODO_LABELS,
@@ -41,11 +42,25 @@ function fmtDate(iso: string | null): string {
 }
 
 export function EstadoCuentaCard({ saldos }: Props) {
-  const alDia = saldos.pendiente <= 0.005;
+  // Recalcular del lado del cliente para acumular mensualidades vencidas
+  // (mensual + unico_mas_mensual + implementacion con mantenimiento opcional).
+  // El RPC público devuelve el snapshot crudo de monto_total.
+  const now = new Date();
+  const totalFacturado = saldos.contratos.reduce(
+    (acc, c) => acc + facturadoDeContrato(c, now),
+    0,
+  );
+  const totalPagado = saldos.pagos.reduce(
+    (acc, p) => acc + Number(p.monto || 0),
+    0,
+  );
+  const pendiente = Math.max(0, totalFacturado - totalPagado);
+  const moneda = saldos.moneda || saldos.contratos[0]?.moneda || "USD";
+  const alDia = pendiente <= 0.005;
   const tieneAlgo =
     saldos.contratos.length > 0 ||
     saldos.pagos.length > 0 ||
-    saldos.total_facturado > 0;
+    totalFacturado > 0;
 
   if (!tieneAlgo) return null;
 
@@ -74,17 +89,17 @@ export function EstadoCuentaCard({ saldos }: Props) {
       <div className="public-saldos-kpis">
         <KPI
           label="Facturado"
-          value={fmt(saldos.total_facturado, saldos.moneda)}
+          value={fmt(totalFacturado, moneda)}
           tone="neutral"
         />
         <KPI
           label="Pagado"
-          value={fmt(saldos.total_pagado, saldos.moneda)}
+          value={fmt(totalPagado, moneda)}
           tone="success"
         />
         <KPI
           label={alDia ? "Al día" : "Pendiente"}
-          value={alDia ? "—" : fmt(saldos.pendiente, saldos.moneda)}
+          value={alDia ? "—" : fmt(pendiente, moneda)}
           tone={alDia ? "success" : "warn"}
           highlight
         />
