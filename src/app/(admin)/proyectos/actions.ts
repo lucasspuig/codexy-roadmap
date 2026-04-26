@@ -67,7 +67,6 @@ export async function createProyectoFromPlantilla(input: {
   }
 
   const supabase = await createClient();
-  const admin = createAdminClient();
 
   // Validar cliente
   const { data: clienteRaw, error: clienteErr } = await supabase
@@ -116,8 +115,11 @@ export async function createProyectoFromPlantilla(input: {
     input.subtitulo?.trim() ||
     (cliente.empresa ? `Implementación Codexy · ${cliente.empresa}` : "Implementación Codexy");
 
-  // Usar admin para hacerlo "atómico" secuencialmente. Si falla algo intermedio, rollback manual.
-  const { data: proyectoRaw, error: projErr } = await admin
+  // Usamos el cliente regular (cookie auth). RLS ya permite a los miembros del
+  // equipo activos hacer insert/update/delete sobre todas las tablas roadmap_*.
+  // Antes esto usaba el admin client, pero generaba un 401 cuando la
+  // SUPABASE_SERVICE_ROLE_KEY no estaba bien cargada en el server.
+  const { data: proyectoRaw, error: projErr } = await supabase
     .from("roadmap_proyectos")
     .insert({
       cliente_id,
@@ -138,7 +140,7 @@ export async function createProyectoFromPlantilla(input: {
   try {
     // Insertar fases e items
     for (const fase of fases) {
-      const { data: faseRowRaw, error: faseErr } = await admin
+      const { data: faseRowRaw, error: faseErr } = await supabase
         .from("roadmap_fases")
         .insert({
           proyecto_id: proyecto.id,
@@ -161,22 +163,26 @@ export async function createProyectoFromPlantilla(input: {
           texto: String(texto),
           completado: false,
         }));
-        const { error: itemsErr } = await admin.from("roadmap_items").insert(rows);
+        const { error: itemsErr } = await supabase
+          .from("roadmap_items")
+          .insert(rows);
         if (itemsErr) throw new Error(itemsErr.message);
       }
     }
 
     // Token público
     const token = generatePublicToken();
-    const { error: tokErr } = await admin.from("roadmap_tokens_publicos").insert({
-      token,
-      proyecto_id: proyecto.id,
-      activo: true,
-    });
+    const { error: tokErr } = await supabase
+      .from("roadmap_tokens_publicos")
+      .insert({
+        token,
+        proyecto_id: proyecto.id,
+        activo: true,
+      });
     if (tokErr) throw new Error(tokErr.message);
 
     // Evento (el trigger puede no disparar para creación manual; lo grabamos nosotros)
-    await admin.from("roadmap_eventos").insert({
+    await supabase.from("roadmap_eventos").insert({
       proyecto_id: proyecto.id,
       tipo: "roadmap_creado",
       mensaje: `Roadmap creado desde plantilla "${plantilla.nombre}"`,
@@ -186,7 +192,7 @@ export async function createProyectoFromPlantilla(input: {
     });
   } catch (err) {
     // Rollback best-effort
-    await admin.from("roadmap_proyectos").delete().eq("id", proyecto.id);
+    await supabase.from("roadmap_proyectos").delete().eq("id", proyecto.id);
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Error creando fases/items",
