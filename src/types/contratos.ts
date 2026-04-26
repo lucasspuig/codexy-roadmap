@@ -1,13 +1,23 @@
 // Tipos para el módulo de contratos digitales con e-signature.
 
-export type ContratoTipo = "implementacion" | "mantenimiento";
+export type ContratoTipo =
+  | "implementacion"
+  | "mantenimiento"
+  | "implementacion_y_mantenimiento";
+
 export type ContratoEstado =
   | "borrador"
   | "enviado"
   | "firmado_cliente"
   | "firmado_completo"
   | "cancelado";
-export type ContratoModalidad = "unico" | "50_50" | "mensual" | "custom";
+
+export type ContratoModalidad =
+  | "unico"
+  | "50_50"
+  | "mensual"
+  | "unico_mas_mensual"
+  | "custom";
 
 export interface ContratoPagoDetalle {
   etapa: string; // "Inicio del proyecto" | "Entrega final" | "Mes 1" | etc.
@@ -69,6 +79,44 @@ export interface AgencySettings {
 }
 
 /**
+ * Helpers de display para el tipo de contrato.
+ */
+export const TIPO_LABELS: Record<ContratoTipo, string> = {
+  implementacion: "Implementación",
+  mantenimiento: "Mantenimiento",
+  implementacion_y_mantenimiento: "Implementación + Mantenimiento",
+};
+
+export const TIPO_LABELS_LARGOS: Record<ContratoTipo, string> = {
+  implementacion: "Implementación",
+  mantenimiento: "Mantenimiento mensual",
+  implementacion_y_mantenimiento:
+    "Implementación + Mantenimiento mensual",
+};
+
+/**
+ * Indica si la modalidad/tipo implica una cuota mensual recurrente.
+ */
+export function tieneMantenimiento(
+  tipo: ContratoTipo,
+  modalidad: ContratoModalidad,
+): boolean {
+  return (
+    tipo === "mantenimiento" ||
+    tipo === "implementacion_y_mantenimiento" ||
+    modalidad === "mensual" ||
+    modalidad === "unico_mas_mensual"
+  );
+}
+
+/**
+ * Indica si el contrato incluye una etapa de implementación (pago "upfront").
+ */
+export function tieneImplementacion(tipo: ContratoTipo): boolean {
+  return tipo === "implementacion" || tipo === "implementacion_y_mantenimiento";
+}
+
+/**
  * Defaults por tipo de contrato — se prellenan en el wizard.
  * Basados en los contratos firmados de Codexy.
  */
@@ -90,12 +138,28 @@ export const ALCANCE_IMPLEMENTACION_EXCLUYE: string[] = [
 ];
 
 export const ALCANCE_MANTENIMIENTO_DEFAULT: string[] = [
-  "Soporte técnico básico",
-  "Ajustes menores relacionados con el funcionamiento del sistema entregado",
-  "Asistencia sobre el uso y operación general de las herramientas configuradas",
+  "Soporte técnico continuo del sistema entregado",
+  "Hosting y mantenimiento de los servidores asociados al sistema",
+  "Consumo de tokens de IA necesarios para la operación normal del sistema",
+  "Ajustes menores y asistencia sobre el funcionamiento del sistema",
 ];
 
 export const ALCANCE_MANTENIMIENTO_EXCLUYE: string[] = [
-  "Campañas publicitarias, estrategias de marketing o generación de ventas",
-  "Nuevos desarrollos, rediseños, funcionalidades adicionales o integraciones externas",
+  "Nuevas funcionalidades, rediseños o desarrollos adicionales",
+  "Integraciones externas no incluidas en la implementación original",
+  "Campañas publicitarias o estrategias de marketing",
+  "Cambios estructurales que requieran un nuevo desarrollo",
+];
+
+/**
+ * Para el contrato combinado (implementación + mantenimiento posterior),
+ * el alcance se construye uniendo ambos sets — la implementación detalla
+ * el desarrollo inicial y el mantenimiento detalla qué cubre la mensualidad.
+ */
+export const ALCANCE_COMBO_DEFAULT: string[] = [
+  ...ALCANCE_IMPLEMENTACION_DEFAULT,
+];
+
+export const ALCANCE_COMBO_EXCLUYE: string[] = [
+  ...ALCANCE_IMPLEMENTACION_EXCLUYE,
 ];

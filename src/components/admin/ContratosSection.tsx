@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Copy,
+  Eye,
   ExternalLink,
   FileText,
   Pencil,
@@ -26,7 +27,12 @@ import {
   listContratosByCliente,
 } from "@/app/(admin)/contratos/actions";
 import { cn, formatDate } from "@/lib/utils";
-import type { Contrato, ContratoEstado, ContratoTipo } from "@/types/contratos";
+import {
+  TIPO_LABELS,
+  type Contrato,
+  type ContratoEstado,
+  type ContratoTipo,
+} from "@/types/contratos";
 
 export interface ContratosSectionProps {
   clienteId: string;
@@ -166,7 +172,7 @@ export function ContratosSection({
         </button>
       </div>
       <p className="text-[12px] text-[var(--color-t3)] mb-4 leading-relaxed">
-        Generá contratos digitales para implementación o mantenimiento. El cliente firma online.
+        Implementación, mantenimiento o el combo de ambos. El cliente firma online y queda inmutable.
       </p>
 
       {loading ? (
@@ -351,6 +357,10 @@ function ContratoRow({
         <div className="flex items-center gap-1 flex-wrap justify-end">
           {isBorrador ? (
             <>
+              <IconButton onClick={onPrint} title="Vista previa del contrato">
+                <Eye size={12.5} />
+                <span className="sr-only sm:not-sr-only sm:ml-1.5">Ver</span>
+              </IconButton>
               <IconButton onClick={onEdit} title="Editar borrador">
                 <Pencil size={12.5} />
                 <span className="sr-only sm:not-sr-only sm:ml-1.5">Editar</span>
@@ -370,8 +380,8 @@ function ContratoRow({
             </>
           ) : isEnviado ? (
             <>
-              <IconButton onClick={onPrint} title="Ver / Imprimir">
-                <ExternalLink size={12.5} />
+              <IconButton onClick={onPrint} title="Ver contrato">
+                <Eye size={12.5} />
                 <span className="sr-only sm:not-sr-only sm:ml-1.5">Ver</span>
               </IconButton>
               <IconButton onClick={onCopyLink} title="Copiar link público">
@@ -389,8 +399,8 @@ function ContratoRow({
             </>
           ) : isFirmado ? (
             <>
-              <IconButton onClick={onPrint} title="Ver / Imprimir">
-                <ExternalLink size={12.5} />
+              <IconButton onClick={onPrint} title="Ver contrato firmado">
+                <Eye size={12.5} />
                 <span className="sr-only sm:not-sr-only sm:ml-1.5">Ver</span>
               </IconButton>
               <IconButton onClick={onPrint} title="Imprimir / PDF">
@@ -445,14 +455,22 @@ function IconButton({
 }
 
 function TipoBadge({ tipo }: { tipo: ContratoTipo }) {
-  const label = tipo === "implementacion" ? "Implementación" : "Mantenimiento";
+  const label =
+    tipo === "implementacion_y_mantenimiento"
+      ? "Implementación + Mantenimiento"
+      : TIPO_LABELS[tipo];
+  const cls =
+    tipo === "implementacion"
+      ? "bg-[var(--color-brand-muted)] border-[var(--color-brand-border)] text-[var(--color-brand)]"
+      : tipo === "mantenimiento"
+        ? "bg-[var(--color-info-muted)] border-[var(--color-info-border)] text-[var(--color-info)]"
+        : // combo
+          "bg-[color-mix(in_srgb,var(--color-brand)_18%,var(--color-info-muted))] border-[var(--color-brand-border)] text-[var(--color-brand)]";
   return (
     <span
       className={cn(
         "inline-flex items-center text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full border",
-        tipo === "implementacion"
-          ? "bg-[var(--color-brand-muted)] border-[var(--color-brand-border)] text-[var(--color-brand)]"
-          : "bg-[var(--color-info-muted)] border-[var(--color-info-border)] text-[var(--color-info)]",
+        cls,
       )}
     >
       {label}

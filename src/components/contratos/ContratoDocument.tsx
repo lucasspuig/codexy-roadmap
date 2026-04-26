@@ -8,7 +8,11 @@
  */
 
 import { formatDate } from "@/lib/utils";
-import type { AgencySettings, Contrato } from "@/types/contratos";
+import {
+  TIPO_LABELS_LARGOS,
+  type AgencySettings,
+  type Contrato,
+} from "@/types/contratos";
 import type { Cliente } from "@/types/database";
 
 export interface ContratoDocumentProps {
@@ -32,7 +36,10 @@ export function ContratoDocument({
   agency,
 }: ContratoDocumentProps) {
   const isImpl = contrato.tipo === "implementacion";
-  const tipoLabel = isImpl ? "Implementación" : "Mantenimiento mensual";
+  const isMant = contrato.tipo === "mantenimiento";
+  const isCombo = contrato.tipo === "implementacion_y_mantenimiento";
+
+  const tipoLabel = TIPO_LABELS_LARGOS[contrato.tipo];
   const fechaEmision = contrato.fecha_emision
     ? formatDate(contrato.fecha_emision)
     : formatDate(contrato.created_at);
@@ -95,8 +102,10 @@ export function ContratoDocument({
       {/* ── Cláusulas ──────────────────────────────────────────────── */}
       {isImpl ? (
         <ClausulasImplementacion contrato={contrato} />
-      ) : (
+      ) : isMant ? (
         <ClausulasMantenimiento contrato={contrato} />
+      ) : (
+        <ClausulasCombo contrato={contrato} />
       )}
 
       {/* ── Detalle de pagos ───────────────────────────────────────── */}
@@ -127,22 +136,24 @@ export function ContratoDocument({
                   <td className="contrato-td-soft">{d.descripcion ?? "—"}</td>
                 </tr>
               ))}
-              <tr className="contrato-tr-total">
-                <td colSpan={2} className="contrato-td-total">
-                  Total
-                </td>
-                <td className="contrato-td-right contrato-mono contrato-td-total">
-                  {fmtMoney(contrato.monto_total, contrato.moneda)}
-                </td>
-                <td />
-              </tr>
+              {!isCombo && !isMant ? (
+                <tr className="contrato-tr-total">
+                  <td colSpan={2} className="contrato-td-total">
+                    Total
+                  </td>
+                  <td className="contrato-td-right contrato-mono contrato-td-total">
+                    {fmtMoney(contrato.monto_total, contrato.moneda)}
+                  </td>
+                  <td />
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </section>
       ) : null}
 
-      {/* ── Plazo (sólo implementación) ────────────────────────────── */}
-      {isImpl && contrato.plazo_implementacion ? (
+      {/* ── Plazo (sólo cuando hay implementación) ─────────────────── */}
+      {(isImpl || isCombo) && contrato.plazo_implementacion ? (
         <section className="contrato-section contrato-info-box">
           <span className="contrato-info-label">Plazo estimado</span>
           <span className="contrato-info-value">
@@ -162,32 +173,43 @@ export function ContratoDocument({
   );
 }
 
-// ─── Cláusulas Implementación ────────────────────────────────────────────────
+// ─── Helpers compartidos ─────────────────────────────────────────────────────
 
-function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
-  const items = contrato.alcance_items ?? [];
-  const moneda = contrato.moneda;
-  const isUSD = moneda === "USD";
-
-  // Cláusula 6 — detalle de pagos legible
-  const pagosTexto = (contrato.detalle_pagos ?? [])
+function pagosTextoOf(contrato: Contrato): string {
+  return (contrato.detalle_pagos ?? [])
     .map((d) => {
       const porc =
         typeof d.porcentaje === "number" ? ` (${d.porcentaje}%)` : "";
       const monto =
         typeof d.monto === "number"
-          ? ` por ${fmtMoney(d.monto, moneda)}`
+          ? ` por ${fmtMoney(d.monto, contrato.moneda)}`
           : "";
       return `${d.etapa}${porc}${monto}`;
     })
     .join("; ");
+}
 
-  // Cláusula 7 — texto de mantenimiento
+function MonedaNota({ moneda }: { moneda: string }) {
+  if (moneda !== "USD") return null;
+  return (
+    <>
+      {" "}
+      En caso de abonarse en pesos argentinos, los valores se calcularán al
+      tipo de cambio oficial (BNA) vigente al día del pago.
+    </>
+  );
+}
+
+// ─── Cláusulas Implementación ────────────────────────────────────────────────
+
+function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
+  const items = contrato.alcance_items ?? [];
+  const moneda = contrato.moneda;
+  const pagosTexto = pagosTextoOf(contrato);
   const mensual = contrato.mantenimiento_mensual;
   const mora = contrato.mora_porcentaje ?? 10;
   const dias = contrato.dias_gracia ?? 5;
-  const tieneMantenimiento =
-    typeof mensual === "number" && mensual > 0;
+  const tieneMant = typeof mensual === "number" && mensual > 0;
 
   return (
     <section className="contrato-section">
@@ -223,9 +245,6 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
               </ul>
             </>
           ) : null}
-          El mantenimiento mensual incluye soporte técnico y ajustes menores.
-          Nuevas funcionalidades, integraciones adicionales o ampliaciones de
-          alcance serán cotizadas de manera independiente.
         </li>
         <li>
           <strong>Información y Accesos.</strong> El cliente se compromete a
@@ -250,14 +269,8 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
             ? `${pagosTexto}.`
             : `Total ${fmtMoney(contrato.monto_total, moneda)}.`}{" "}
           Los valores expresados en {moneda}.
-          {isUSD ? (
-            <>
-              {" "}
-              En caso de abonarse en pesos argentinos, se calcularán al tipo
-              de cambio oficial (BNA) vigente al día del pago.
-            </>
-          ) : null}{" "}
-          Los precios no incluyen impuestos locales (IVA).
+          <MonedaNota moneda={moneda} />
+          {" "}Los precios no incluyen impuestos locales (IVA).
           {contrato.plazo_implementacion ? (
             <>
               {" "}
@@ -268,7 +281,7 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
         </li>
         <li>
           <strong>Mantenimiento Futuro.</strong>{" "}
-          {tieneMantenimiento ? (
+          {tieneMant ? (
             <>
               {fmtMoney(mensual!, moneda)} mensual, día 1 de cada mes; mora{" "}
               {mora}% acumulativo después de {dias} días.{" "}
@@ -276,9 +289,10 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
           ) : (
             "El mantenimiento mensual será definido al finalizar la implementación. "
           )}
-          Incluye correcciones menores y soporte técnico básico. No incluye
-          nuevas funcionalidades, cambios estructurales, integraciones
-          adicionales ni ampliación de alcance.
+          Incluye soporte técnico, hosting/servidor y consumo de tokens de IA
+          necesarios para la operación normal del sistema. No incluye nuevas
+          funcionalidades, cambios estructurales, integraciones adicionales ni
+          ampliación de alcance.
         </li>
         <li>
           <strong>Costos de Plataformas Externas.</strong> El sistema puede
@@ -330,8 +344,8 @@ function ClausulasMantenimiento({ contrato }: { contrato: Contrato }) {
       <ol className="contrato-clauses">
         <li>
           <strong>Objeto.</strong> Este acuerdo establece las condiciones del
-          servicio de mantenimiento y soporte brindado por Codexy, posterior a
-          la entrega del sistema desarrollado, ya abonado y finalizado.
+          servicio de mantenimiento mensual brindado por Codexy, posterior a la
+          entrega del sistema desarrollado, ya abonado y finalizado.
         </li>
         <li>
           <strong>Alcance.</strong>
@@ -362,10 +376,18 @@ function ClausulasMantenimiento({ contrato }: { contrato: Contrato }) {
           respondidas el siguiente día hábil.
         </li>
         <li>
-          <strong>Pagos.</strong> Monto mensual fijo:{" "}
+          <strong>Pagos.</strong> Monto mensual:{" "}
           <strong>{fmtMoney(mensual, moneda)}</strong>. Día 1 de cada mes.
           Plazo de gracia: {dias} días. Vencido el plazo: suspensión + recargo{" "}
-          {mora}% mensual acumulativo.
+          {mora}% mensual acumulativo. Los valores expresados en {moneda}.
+          <MonedaNota moneda={moneda} />
+        </li>
+        <li>
+          <strong>Revisión trimestral.</strong> El monto del mantenimiento
+          podrá ser revisado y ajustado cada tres (3) meses en función del
+          desempeño del sistema, el volumen de uso, el consumo real de tokens
+          de IA y los costos asociados al servidor. Cualquier ajuste será
+          comunicado al cliente con al menos quince (15) días de anticipación.
         </li>
         <li>
           <strong>Limitaciones.</strong> Codexy no responde por: caídas de
@@ -389,6 +411,175 @@ function ClausulasMantenimiento({ contrato }: { contrato: Contrato }) {
           <strong>Confidencialidad y Vigencia.</strong> Confidencialidad mutua
           durante y después del vínculo. Contrato vigente desde la entrega del
           sistema mientras se mantenga el servicio activo.
+        </li>
+      </ol>
+    </section>
+  );
+}
+
+// ─── Cláusulas Combo (Implementación + Mantenimiento) ────────────────────────
+
+function ClausulasCombo({ contrato }: { contrato: Contrato }) {
+  const items = contrato.alcance_items ?? [];
+  const moneda = contrato.moneda;
+  const monto = contrato.monto_total;
+  const mensual = contrato.mantenimiento_mensual;
+  const mora = contrato.mora_porcentaje ?? 10;
+  const dias = contrato.dias_gracia ?? 5;
+  const tieneMensual = typeof mensual === "number" && mensual > 0;
+
+  return (
+    <section className="contrato-section">
+      <h2 className="contrato-h2">Cláusulas</h2>
+      <ol className="contrato-clauses">
+        <li>
+          <strong>Objeto.</strong> El presente contrato comprende dos etapas
+          complementarias: (i) la implementación inicial del sistema de
+          automatización descripto, abonada en forma de pago único; y (ii) el
+          servicio de mantenimiento mensual posterior, que asegura la
+          operación continua del sistema entregado.
+        </li>
+        <li>
+          <strong>Alcance de la Implementación.</strong> La etapa inicial
+          contempla:
+          {items.length === 0 ? (
+            <span> los puntos detallados en el presupuesto.</span>
+          ) : (
+            <ul className="contrato-sublist">
+              {items.map((it, i) => (
+                <li key={i}>{it}</li>
+              ))}
+            </ul>
+          )}
+          {contrato.alcance_excluye && contrato.alcance_excluye.length > 0 ? (
+            <>
+              <span className="contrato-not-includes">
+                Quedan expresamente excluidos:
+              </span>
+              <ul className="contrato-sublist contrato-sublist-excl">
+                {contrato.alcance_excluye.map((it, i) => (
+                  <li key={i}>{it}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </li>
+        <li>
+          <strong>Alcance del Mantenimiento Mensual.</strong> Una vez entregado
+          y aprobado el sistema, EL PRESTADOR brindará un servicio mensual que
+          incluye:
+          <ul className="contrato-sublist">
+            <li>Soporte técnico continuo del sistema entregado.</li>
+            <li>
+              Hosting y mantenimiento de los servidores asociados al sistema.
+            </li>
+            <li>
+              Consumo de tokens de IA necesarios para la operación normal del
+              sistema dentro del volumen estimado.
+            </li>
+            <li>
+              Ajustes menores y asistencia sobre el funcionamiento del sistema.
+            </li>
+          </ul>
+          <span className="contrato-not-includes">
+            El mantenimiento NO incluye:
+          </span>
+          <ul className="contrato-sublist contrato-sublist-excl">
+            <li>
+              Nuevas funcionalidades, rediseños o desarrollos adicionales.
+            </li>
+            <li>
+              Integraciones externas no incluidas en la implementación
+              original.
+            </li>
+            <li>Campañas publicitarias o estrategias de marketing.</li>
+            <li>
+              Cambios estructurales que requieran un nuevo desarrollo,
+              cotizables aparte.
+            </li>
+          </ul>
+        </li>
+        <li>
+          <strong>Pagos.</strong> Pago único de implementación:{" "}
+          <strong>{fmtMoney(monto, moneda)}</strong>, abonado a la firma del
+          presente contrato.
+          {tieneMensual ? (
+            <>
+              {" "}
+              Cuota mensual de mantenimiento:{" "}
+              <strong>{fmtMoney(mensual!, moneda)}</strong>, con vencimiento el
+              día 1 de cada mes calendario, comenzando al mes siguiente de la
+              entrega del sistema. Plazo de gracia: {dias} días. Vencido el
+              plazo: suspensión del servicio + recargo {mora}% mensual
+              acumulativo.
+            </>
+          ) : (
+            " La cuota mensual de mantenimiento se definirá al finalizar la implementación."
+          )}{" "}
+          Los valores expresados en {moneda}.
+          <MonedaNota moneda={moneda} />
+          {" "}Los precios no incluyen impuestos locales (IVA).
+        </li>
+        <li>
+          <strong>Revisión trimestral del mantenimiento.</strong> La cuota
+          mensual de mantenimiento podrá ser revisada y ajustada cada tres (3)
+          meses en función del desempeño del sistema, el volumen de uso real,
+          el consumo de tokens de IA y los costos asociados al servidor.
+          Cualquier ajuste será informado al cliente con al menos quince (15)
+          días de anticipación a su entrada en vigencia. El cliente podrá
+          aceptar el nuevo valor o rescindir el servicio de mantenimiento sin
+          penalidad alguna.
+        </li>
+        <li>
+          <strong>Información y Accesos.</strong> El cliente se compromete a
+          entregar en tiempo y forma información, prioridades, protocolos y
+          credenciales necesarias para integraciones. La falta de entrega
+          puede retrasar la implementación.
+        </li>
+        <li>
+          <strong>Pruebas y Ajustes.</strong> Se realizará una etapa de
+          pruebas técnicas. El cliente deberá testear y reportar errores. Se
+          realizarán correcciones dentro del alcance acordado.
+        </li>
+        <li>
+          <strong>Soporte.</strong> Codexy brindará atención de lunes a
+          viernes de 08:00 a 20:00 hs (horario Argentina), excluyendo
+          feriados. Comunicaciones fuera de horario serán respondidas el
+          siguiente día hábil.
+        </li>
+        <li>
+          <strong>Costos de Plataformas Externas.</strong> El sistema puede
+          utilizar plataformas de Meta (Facebook/Instagram) u otras APIs cuyo
+          costo (por ejemplo USD 0,07 por conversación) es abonado
+          directamente por el cliente desde sus propias cuentas. Codexy brinda
+          asesoramiento pero no es responsable por cargos de terceros.
+        </li>
+        <li>
+          <strong>Responsabilidades y Limitaciones.</strong> EL PRESTADOR no
+          es responsable por interrupciones o cambios en servicios de
+          terceros, caídas de servidores externos, problemas de conectividad
+          ajenos al sistema entregado, ni por resultados comerciales (ventas,
+          conversiones, posicionamiento). Su responsabilidad se limita al
+          correcto funcionamiento del sistema según lo acordado.
+        </li>
+        <li>
+          <strong>Confidencialidad.</strong> Ambas partes se comprometen a
+          proteger la información sensible y estratégica intercambiada en el
+          marco del presente acuerdo, durante y después del vínculo
+          contractual.
+        </li>
+        <li>
+          <strong>Vigencia y Rescisión.</strong> El presente acuerdo estará
+          vigente desde la firma y mientras el cliente mantenga el servicio de
+          mantenimiento al día. Cualquiera de las partes podrá rescindir el
+          mantenimiento mensual notificando con al menos treinta (30) días de
+          anticipación. La rescisión no afecta el pago de la implementación
+          inicial ya abonada.
+        </li>
+        <li>
+          <strong>Aceptación.</strong> La firma del presente documento
+          implica la aceptación total de las condiciones aquí establecidas
+          por ambas partes.
         </li>
       </ol>
     </section>

@@ -12,6 +12,7 @@ import {
   Briefcase,
   Calculator,
   Check,
+  Layers,
   ListChecks,
   Plus,
   Sparkles,
@@ -25,10 +26,14 @@ import { Input, Label, Textarea } from "@/components/ui/Input";
 import { Dialog } from "@/components/admin/Dialog";
 import { createContrato } from "@/app/(admin)/contratos/actions";
 import {
+  ALCANCE_COMBO_DEFAULT,
+  ALCANCE_COMBO_EXCLUYE,
   ALCANCE_IMPLEMENTACION_DEFAULT,
   ALCANCE_IMPLEMENTACION_EXCLUYE,
   ALCANCE_MANTENIMIENTO_DEFAULT,
   ALCANCE_MANTENIMIENTO_EXCLUYE,
+  tieneImplementacion,
+  tieneMantenimiento,
   type ContratoModalidad,
   type ContratoPagoDetalle,
   type ContratoTipo,
@@ -73,9 +78,42 @@ function defaultTituloFor(
   nombre: string,
 ): string {
   const cliente = empresa || nombre;
-  return tipo === "implementacion"
-    ? `Implementación de sistema de automatización · ${cliente}`
-    : `Mantenimiento mensual · ${cliente}`;
+  if (tipo === "implementacion") {
+    return `Implementación de sistema de automatización · ${cliente}`;
+  }
+  if (tipo === "mantenimiento") {
+    return `Mantenimiento mensual · ${cliente}`;
+  }
+  // combo
+  return `Implementación + Mantenimiento mensual · ${cliente}`;
+}
+
+function defaultsAlcanceFor(tipo: ContratoTipo): {
+  items: string[];
+  excluye: string[];
+} {
+  if (tipo === "implementacion") {
+    return {
+      items: [...ALCANCE_IMPLEMENTACION_DEFAULT],
+      excluye: [...ALCANCE_IMPLEMENTACION_EXCLUYE],
+    };
+  }
+  if (tipo === "mantenimiento") {
+    return {
+      items: [...ALCANCE_MANTENIMIENTO_DEFAULT],
+      excluye: [...ALCANCE_MANTENIMIENTO_EXCLUYE],
+    };
+  }
+  return {
+    items: [...ALCANCE_COMBO_DEFAULT],
+    excluye: [...ALCANCE_COMBO_EXCLUYE],
+  };
+}
+
+function defaultModalidadFor(tipo: ContratoTipo): ContratoModalidad {
+  if (tipo === "mantenimiento") return "mensual";
+  if (tipo === "implementacion_y_mantenimiento") return "unico_mas_mensual";
+  return "50_50";
 }
 
 function initialState(
@@ -83,24 +121,19 @@ function initialState(
   empresa: string | null,
   nombre: string,
 ): WizardState {
+  const al = defaultsAlcanceFor(tipo);
   return {
     tipo,
     servicio_titulo: defaultTituloFor(tipo, empresa, nombre),
     servicio_descripcion: "",
-    alcance_items:
-      tipo === "implementacion"
-        ? [...ALCANCE_IMPLEMENTACION_DEFAULT]
-        : [...ALCANCE_MANTENIMIENTO_DEFAULT],
-    alcance_excluye:
-      tipo === "implementacion"
-        ? [...ALCANCE_IMPLEMENTACION_EXCLUYE]
-        : [...ALCANCE_MANTENIMIENTO_EXCLUYE],
-    plazo_implementacion: tipo === "implementacion" ? "3 a 6 semanas" : "",
+    alcance_items: al.items,
+    alcance_excluye: al.excluye,
+    plazo_implementacion: tieneImplementacion(tipo) ? "3 a 6 semanas" : "",
     monto_total: "",
     moneda: "USD",
-    modalidad_pago: tipo === "mantenimiento" ? "mensual" : "50_50",
+    modalidad_pago: defaultModalidadFor(tipo),
     detalle_pagos: [],
-    mantenimiento_mensual: tipo === "mantenimiento" ? "" : "",
+    mantenimiento_mensual: "",
     mora_porcentaje: "10",
     dias_gracia: "5",
   };
@@ -136,28 +169,23 @@ export function ContratoWizard({
 
   function changeTipo(tipo: ContratoTipo) {
     // Re-aplica defaults consistentes con el nuevo tipo
+    const al = defaultsAlcanceFor(tipo);
     setState((s) => ({
       ...s,
       tipo,
       servicio_titulo: defaultTituloFor(tipo, clienteEmpresa, clienteNombre),
-      alcance_items:
-        tipo === "implementacion"
-          ? [...ALCANCE_IMPLEMENTACION_DEFAULT]
-          : [...ALCANCE_MANTENIMIENTO_DEFAULT],
-      alcance_excluye:
-        tipo === "implementacion"
-          ? [...ALCANCE_IMPLEMENTACION_EXCLUYE]
-          : [...ALCANCE_MANTENIMIENTO_EXCLUYE],
-      plazo_implementacion: tipo === "implementacion" ? "3 a 6 semanas" : "",
-      modalidad_pago: tipo === "mantenimiento" ? "mensual" : "50_50",
+      alcance_items: al.items,
+      alcance_excluye: al.excluye,
+      plazo_implementacion: tieneImplementacion(tipo) ? "3 a 6 semanas" : "",
+      modalidad_pago: defaultModalidadFor(tipo),
     }));
   }
 
   // Detalle de pagos generado automáticamente según modalidad
   const computedDetalle: ContratoPagoDetalle[] = useMemo(() => {
     const monto = Number.parseFloat(state.monto_total);
-    if (!Number.isFinite(monto) || monto <= 0) return [];
     if (state.modalidad_pago === "unico") {
+      if (!Number.isFinite(monto) || monto <= 0) return [];
       return [
         {
           etapa: "Pago único",
@@ -168,6 +196,7 @@ export function ContratoWizard({
       ];
     }
     if (state.modalidad_pago === "50_50") {
+      if (!Number.isFinite(monto) || monto <= 0) return [];
       return [
         {
           etapa: "Inicio del proyecto",
@@ -194,6 +223,25 @@ export function ContratoWizard({
         },
       ];
     }
+    if (state.modalidad_pago === "unico_mas_mensual") {
+      const mensual = Number.parseFloat(state.mantenimiento_mensual);
+      const out: ContratoPagoDetalle[] = [];
+      if (Number.isFinite(monto) && monto > 0) {
+        out.push({
+          etapa: "Implementación (pago único)",
+          monto: round2(monto),
+          descripcion: "Al inicio del proyecto, a la firma del contrato",
+        });
+      }
+      if (Number.isFinite(mensual) && mensual > 0) {
+        out.push({
+          etapa: "Mantenimiento mensual",
+          monto: round2(mensual),
+          descripcion: `Día 1 de cada mes desde la entrega — ${state.moneda} ${mensual}`,
+        });
+      }
+      return out;
+    }
     return state.detalle_pagos;
   }, [
     state.modalidad_pago,
@@ -216,7 +264,11 @@ export function ContratoWizard({
   function canSubmit(): boolean {
     const monto = Number.parseFloat(state.monto_total);
     if (!Number.isFinite(monto) || monto <= 0) return false;
-    if (state.modalidad_pago === "mensual" && state.tipo === "mantenimiento") {
+    // Para modalidades con cuota mensual, exigir mantenimiento_mensual > 0
+    if (
+      state.modalidad_pago === "mensual" ||
+      state.modalidad_pago === "unico_mas_mensual"
+    ) {
       const m = Number.parseFloat(state.mantenimiento_mensual);
       if (!Number.isFinite(m) || m <= 0) return false;
     }
@@ -262,18 +314,24 @@ export function ContratoWizard({
       moneda: state.moneda,
       modalidad_pago: state.modalidad_pago,
       detalle_pagos: detalle,
-      mantenimiento_mensual:
-        state.tipo === "mantenimiento" || state.modalidad_pago === "mensual"
-          ? Number.isFinite(mensual)
-            ? mensual
-            : null
-          : null,
-      mora_porcentaje:
-        state.tipo === "mantenimiento" && Number.isFinite(mora) ? mora : null,
-      dias_gracia:
-        state.tipo === "mantenimiento" && Number.isFinite(gracia)
+      mantenimiento_mensual: tieneMantenimiento(
+        state.tipo,
+        state.modalidad_pago,
+      )
+        ? Number.isFinite(mensual)
+          ? mensual
+          : null
+        : null,
+      mora_porcentaje: tieneMantenimiento(state.tipo, state.modalidad_pago)
+        ? Number.isFinite(mora)
+          ? mora
+          : null
+        : null,
+      dias_gracia: tieneMantenimiento(state.tipo, state.modalidad_pago)
+        ? Number.isFinite(gracia)
           ? gracia
-          : null,
+          : null
+        : null,
     });
     setSubmitting(false);
     if (!res.ok) {
@@ -410,20 +468,29 @@ function Step1({
     <div className="space-y-4">
       <div>
         <Label>Tipo de contrato</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
           <RadioCard
             active={state.tipo === "implementacion"}
             onClick={() => onChangeTipo("implementacion")}
             icon={<Sparkles size={14} />}
             title="Implementación"
-            description="Desarrollo + automatizaciones del sistema. Pago único o por etapas."
+            description="Solo el desarrollo inicial. Pago único o 50/50."
           />
           <RadioCard
             active={state.tipo === "mantenimiento"}
             onClick={() => onChangeTipo("mantenimiento")}
             icon={<Wrench size={14} />}
             title="Mantenimiento"
-            description="Cuota mensual fija con soporte y ajustes menores incluidos."
+            description="Cuota mensual: soporte, servidor y tokens de IA."
+          />
+          <RadioCard
+            active={state.tipo === "implementacion_y_mantenimiento"}
+            onClick={() =>
+              onChangeTipo("implementacion_y_mantenimiento")
+            }
+            icon={<Layers size={14} />}
+            title="Implementación + Mantenimiento"
+            description="Pago único de implementación y luego cuota mensual recurrente."
           />
         </div>
       </div>
@@ -653,14 +720,39 @@ function Step3({
     });
   }
 
-  const showMantenimientoFields =
-    state.tipo === "mantenimiento" || state.modalidad_pago === "mensual";
+  const showMantenimientoFields = tieneMantenimiento(
+    state.tipo,
+    state.modalidad_pago,
+  );
+  const isCombo = state.tipo === "implementacion_y_mantenimiento";
+  const isMantOnly = state.tipo === "mantenimiento";
+  const montoLabel = isCombo
+    ? "Pago único de implementación *"
+    : isMantOnly
+      ? "Monto de referencia anual"
+      : "Monto total *";
+  const montoHint = isCombo
+    ? "Lo que se cobra a la firma para el desarrollo inicial."
+    : isMantOnly
+      ? "Sirve como referencia. La cuota mensual va en el campo de abajo."
+      : "Monto del proyecto, distribuido según la modalidad elegida.";
+
+  // Modalidades disponibles según el tipo seleccionado.
+  const modalidades: Array<{ id: ContratoModalidad; label: string }> = isCombo
+    ? [{ id: "unico_mas_mensual", label: "Único + mensual" }]
+    : isMantOnly
+      ? [{ id: "mensual", label: "Mensual" }]
+      : [
+          { id: "unico", label: "Único" },
+          { id: "50_50", label: "50 / 50" },
+          { id: "custom", label: "Custom" },
+        ];
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
         <div>
-          <Label htmlFor="cw-monto">Monto total *</Label>
+          <Label htmlFor="cw-monto">{montoLabel}</Label>
           <Input
             id="cw-monto"
             type="number"
@@ -670,6 +762,9 @@ function Step3({
             onChange={(e) => onChange({ monto_total: e.target.value })}
             placeholder="0.00"
           />
+          <p className="text-[11px] text-[var(--color-t3)] mt-1.5">
+            {montoHint}
+          </p>
         </div>
         <div>
           <Label htmlFor="cw-moneda">Moneda</Label>
@@ -685,36 +780,43 @@ function Step3({
         </div>
       </div>
 
-      <div>
-        <Label>Modalidad de pago</Label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
-          {(
-            [
-              { id: "unico", label: "Único" },
-              { id: "50_50", label: "50 / 50" },
-              { id: "mensual", label: "Mensual" },
-              { id: "custom", label: "Custom" },
-            ] as Array<{ id: ContratoModalidad; label: string }>
-          ).map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => onChange({ modalidad_pago: opt.id })}
-              className={cn(
-                "text-[12px] font-medium px-3 py-2 rounded-[7px] border transition-all",
-                state.modalidad_pago === opt.id
-                  ? "bg-[var(--color-brand-muted)] border-[var(--color-brand-border)] text-[var(--color-brand)]"
-                  : "bg-[var(--color-s2)] border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)]",
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+      {modalidades.length > 1 ? (
+        <div>
+          <Label>Modalidad de pago</Label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+            {modalidades.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onChange({ modalidad_pago: opt.id })}
+                className={cn(
+                  "text-[12px] font-medium px-3 py-2 rounded-[7px] border transition-all",
+                  state.modalidad_pago === opt.id
+                    ? "bg-[var(--color-brand-muted)] border-[var(--color-brand-border)] text-[var(--color-brand)]"
+                    : "bg-[var(--color-s2)] border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-b2)] hover:text-[var(--color-t1)]",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {showMantenimientoFields ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s2)]/40">
+        <div className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s2)]/40 p-3.5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Wrench size={12} className="text-[var(--color-info)]" />
+            <span className="text-[11.5px] font-semibold text-[var(--color-t1)]">
+              Mantenimiento mensual
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--color-t3)] mb-3 leading-relaxed">
+            Cubre soporte técnico, servidor y consumo de tokens de IA.
+            <strong className="text-[var(--color-t2)]"> No incluye nuevas funcionalidades</strong>.
+            La cuota puede ajustarse cada 3 meses según el uso real.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <Label htmlFor="cw-mens">Cuota mensual</Label>
             <Input
@@ -752,6 +854,7 @@ function Step3({
               onChange={(e) => onChange({ dias_gracia: e.target.value })}
               placeholder="5"
             />
+          </div>
           </div>
         </div>
       ) : null}

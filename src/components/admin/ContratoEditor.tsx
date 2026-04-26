@@ -9,10 +9,13 @@ import { Input, Label, Textarea } from "@/components/ui/Input";
 import { Dialog } from "@/components/admin/Dialog";
 import { createClient } from "@/lib/supabase/client";
 import { updateContrato } from "@/app/(admin)/contratos/actions";
-import type {
-  Contrato,
-  ContratoModalidad,
-  ContratoPagoDetalle,
+import {
+  TIPO_LABELS,
+  tieneImplementacion,
+  tieneMantenimiento,
+  type Contrato,
+  type ContratoModalidad,
+  type ContratoPagoDetalle,
 } from "@/types/contratos";
 import { cn } from "@/lib/utils";
 
@@ -117,6 +120,7 @@ export function ContratoEditor({
 
     // Recalcular detalle según modalidad cuando cambia. Para custom, lo dejamos
     // como estaba previamente (UI más rica está en el wizard).
+    const mensualNum = Number.parseFloat(mantenimiento);
     let detalle: ContratoPagoDetalle[] = contrato.detalle_pagos ?? [];
     if (modalidad === "unico") {
       detalle = [
@@ -143,17 +147,35 @@ export function ContratoEditor({
         },
       ];
     } else if (modalidad === "mensual") {
-      const mensual = Number.parseFloat(mantenimiento);
-      if (Number.isFinite(mensual) && mensual > 0) {
+      if (Number.isFinite(mensualNum) && mensualNum > 0) {
         detalle = [
           {
             etapa: "Cuota mensual",
-            monto: round2(mensual),
-            descripcion: `Día 1 de cada mes — ${moneda} ${mensual}`,
+            monto: round2(mensualNum),
+            descripcion: `Día 1 de cada mes — ${moneda} ${mensualNum}`,
           },
         ];
       }
+    } else if (modalidad === "unico_mas_mensual") {
+      detalle = [];
+      if (Number.isFinite(monto) && monto > 0) {
+        detalle.push({
+          etapa: "Implementación (pago único)",
+          monto: round2(monto),
+          descripcion: "Al inicio del proyecto, a la firma del contrato",
+        });
+      }
+      if (Number.isFinite(mensualNum) && mensualNum > 0) {
+        detalle.push({
+          etapa: "Mantenimiento mensual",
+          monto: round2(mensualNum),
+          descripcion: `Día 1 de cada mes desde la entrega — ${moneda} ${mensualNum}`,
+        });
+      }
     }
+
+    const hasImpl = tieneImplementacion(contrato.tipo);
+    const hasMant = tieneMantenimiento(contrato.tipo, modalidad);
 
     const res = await updateContrato({
       id: contrato.id,
@@ -162,26 +184,18 @@ export function ContratoEditor({
         servicio_descripcion: descripcion.trim() || undefined,
         alcance_items: items,
         alcance_excluye: excluye,
-        plazo_implementacion:
-          contrato.tipo === "implementacion"
-            ? plazo.trim() || undefined
-            : undefined,
+        plazo_implementacion: hasImpl ? plazo.trim() || undefined : undefined,
         monto_total: monto,
         moneda,
         modalidad_pago: modalidad,
         detalle_pagos: detalle,
-        mantenimiento_mensual:
-          contrato.tipo === "mantenimiento" || modalidad === "mensual"
-            ? Number.parseFloat(mantenimiento) || null
-            : null,
-        mora_porcentaje:
-          contrato.tipo === "mantenimiento"
-            ? Number.parseFloat(mora) || null
-            : null,
-        dias_gracia:
-          contrato.tipo === "mantenimiento"
-            ? Number.parseFloat(gracia) || null
-            : null,
+        mantenimiento_mensual: hasMant
+          ? Number.isFinite(mensualNum)
+            ? mensualNum
+            : null
+          : null,
+        mora_porcentaje: hasMant ? Number.parseFloat(mora) || null : null,
+        dias_gracia: hasMant ? Number.parseFloat(gracia) || null : null,
         notas_internas: notas.trim() || undefined,
       },
     });
@@ -201,13 +215,7 @@ export function ContratoEditor({
         if (!saving) onClose();
       }}
       title={contrato ? `Editar ${contrato.numero}` : "Editar contrato"}
-      description={
-        contrato
-          ? contrato.tipo === "implementacion"
-            ? "Implementación"
-            : "Mantenimiento"
-          : ""
-      }
+      description={contrato ? TIPO_LABELS[contrato.tipo] : ""}
       maxWidth="640px"
       footer={
         <>
@@ -298,7 +306,7 @@ export function ContratoEditor({
               />
             </div>
           </div>
-          {contrato.tipo === "implementacion" ? (
+          {tieneImplementacion(contrato.tipo) ? (
             <div>
               <Label htmlFor="ce-plazo">Plazo</Label>
               <Input
@@ -345,11 +353,12 @@ export function ContratoEditor({
                 <option value="unico">Único</option>
                 <option value="50_50">50/50</option>
                 <option value="mensual">Mensual</option>
+                <option value="unico_mas_mensual">Único + mensual</option>
                 <option value="custom">Custom</option>
               </select>
             </div>
           </div>
-          {(contrato.tipo === "mantenimiento" || modalidad === "mensual") ? (
+          {tieneMantenimiento(contrato.tipo, modalidad) ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s2)]/40">
               <div>
                 <Label htmlFor="ce-mens">Cuota mensual</Label>

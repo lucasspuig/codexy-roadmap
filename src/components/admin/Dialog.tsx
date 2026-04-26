@@ -20,6 +20,8 @@ export interface DialogProps {
  * - Cierra con Escape (default del elemento).
  * - Cierra al clickear fuera (backdrop).
  * - Devuelve focus al trigger.
+ * - Mobile-friendly: el contenido scrollea dentro del modal y no en la página
+ *   de fondo (overscroll-behavior: contain).
  */
 export function Dialog({
   open,
@@ -40,6 +42,17 @@ export function Dialog({
     } else if (!open && el.open) {
       el.close();
     }
+  }, [open]);
+
+  // Bloquea el scroll del body mientras el modal está abierto. Evita el
+  // glitch en mobile donde gestos sobre el modal arrastraban la página.
+  useEffect(() => {
+    if (!open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
   }, [open]);
 
   // Wire native events (Escape triggers close event; backdrop click we detect via target)
@@ -80,12 +93,17 @@ export function Dialog({
         <div
           role="document"
           onClick={(e) => e.stopPropagation()}
-          className="bg-[var(--color-s1)] border border-[var(--color-b1)] rounded-[14px] w-full pointer-events-auto shadow-2xl animate-fade-in"
+          className={cn(
+            "bg-[var(--color-s1)] border border-[var(--color-b1)] rounded-[14px] w-full pointer-events-auto shadow-2xl animate-fade-in",
+            // Layout en columna con altura tope para que el body sea el único que scrollea.
+            "flex flex-col max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2.5rem)]",
+          )}
           style={{ maxWidth }}
         >
-          <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 sm:px-6 sm:pt-5">
-            <div>
-              <h3 className="text-[17px] font-semibold text-[var(--color-t1)]">
+          {/* Header — fijo */}
+          <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3 sm:px-6 sm:pt-5 shrink-0 border-b border-transparent">
+            <div className="min-w-0">
+              <h3 className="text-[17px] font-semibold text-[var(--color-t1)] truncate">
                 {title}
               </h3>
               {description ? (
@@ -98,14 +116,23 @@ export function Dialog({
               type="button"
               onClick={onClose}
               aria-label="Cerrar"
-              className="text-[var(--color-t3)] hover:text-[var(--color-t1)] transition-colors p-1 -mr-1"
+              className="text-[var(--color-t3)] hover:text-[var(--color-t1)] transition-colors p-1 -mr-1 shrink-0"
             >
               <X size={16} />
             </button>
           </div>
-          <div className="px-6 pb-5">{children}</div>
+
+          {/* Body — único elemento scrollable */}
+          <div
+            className="px-5 sm:px-6 pb-5 flex-1 min-h-0 overflow-y-auto"
+            style={{ overscrollBehavior: "contain" }}
+          >
+            {children}
+          </div>
+
+          {/* Footer — fijo */}
           {footer ? (
-            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[var(--color-b1)]">
+            <div className="flex items-center justify-end gap-2 px-5 sm:px-6 py-3.5 border-t border-[var(--color-b1)] shrink-0 bg-[var(--color-s1)] rounded-b-[14px]">
               {footer}
             </div>
           ) : null}
