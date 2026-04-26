@@ -49,6 +49,9 @@ export function ContratoEditor({
   const [mora, setMora] = useState("");
   const [gracia, setGracia] = useState("");
   const [notas, setNotas] = useState("");
+  // Toggle explícito para "Mantenimiento mensual posterior" en contratos
+  // de Implementación con modalidad no-mensual.
+  const [showMantenimiento, setShowMantenimiento] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -78,16 +81,21 @@ export function ContratoEditor({
       setMontoTotal(String(c.monto_total ?? ""));
       setMoneda(c.moneda || "USD");
       setModalidad(c.modalidad_pago);
+      const tieneMantValor =
+        c.mantenimiento_mensual !== null && c.mantenimiento_mensual > 0;
       setMantenimiento(
         c.mantenimiento_mensual !== null
           ? String(c.mantenimiento_mensual)
           : "",
       );
       setMora(
-        c.mora_porcentaje !== null ? String(c.mora_porcentaje) : "",
+        c.mora_porcentaje !== null ? String(c.mora_porcentaje) : "10",
       );
-      setGracia(c.dias_gracia !== null ? String(c.dias_gracia) : "");
+      setGracia(c.dias_gracia !== null ? String(c.dias_gracia) : "5");
       setNotas(c.notas_internas ?? "");
+      setShowMantenimiento(
+        tieneMantenimiento(c.tipo, c.modalidad_pago) || tieneMantValor,
+      );
       setLoading(false);
     })();
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -176,10 +184,9 @@ export function ContratoEditor({
 
     const hasImpl = tieneImplementacion(contrato.tipo);
     const autoMant = tieneMantenimiento(contrato.tipo, modalidad);
-    // Persistir si el usuario puso un valor explícito > 0, aún sin auto.
-    const persistMant =
-      autoMant ||
-      (Number.isFinite(mensualNum) && mensualNum > 0 && hasImpl);
+    // Persistir si auto, o si el usuario activó el toggle de mantenimiento
+    // posterior en una Implementación.
+    const persistMant = autoMant || (hasImpl && showMantenimiento);
 
     const res = await updateContrato({
       id: contrato.id,
@@ -364,18 +371,19 @@ export function ContratoEditor({
           </div>
           {(() => {
             const auto = tieneMantenimiento(contrato.tipo, modalidad);
-            const tieneValor =
-              mantenimiento.trim() !== "" &&
-              Number.parseFloat(mantenimiento) > 0;
-            const showFields = auto || tieneValor;
-            const puedeQuitar = !auto && tieneValor;
-            const puedeAgregar = !auto && !tieneValor;
+            const showFields = auto || showMantenimiento;
+            const puedeQuitar = !auto && showMantenimiento;
+            const puedeAgregar = !auto && !showMantenimiento;
 
             if (puedeAgregar) {
               return (
                 <button
                   type="button"
-                  onClick={() => setMantenimiento("0")}
+                  onClick={() => {
+                    setShowMantenimiento(true);
+                    if (mora.trim() === "") setMora("10");
+                    if (gracia.trim() === "") setGracia("5");
+                  }}
                   className="inline-flex items-center gap-1.5 h-9 px-3 text-[12px] font-medium rounded-[8px] border border-dashed border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] hover:bg-[var(--color-brand-muted)] transition-colors"
                 >
                   <Plus size={12} />
@@ -395,6 +403,7 @@ export function ContratoEditor({
                     <button
                       type="button"
                       onClick={() => {
+                        setShowMantenimiento(false);
                         setMantenimiento("");
                         setMora("");
                         setGracia("");
