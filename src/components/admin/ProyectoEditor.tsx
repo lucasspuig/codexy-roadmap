@@ -40,6 +40,7 @@ import { Input, Label, Textarea } from "@/components/ui/Input";
 import { BrandingSection } from "@/components/admin/BrandingSection";
 import { ClientEditDialog } from "@/components/admin/ClientEditDialog";
 import { ContratosSection } from "@/components/admin/ContratosSection";
+import { SaldoSection } from "@/components/admin/SaldoSection";
 import { ConfirmDialog } from "@/components/admin/Dialog";
 import { ProgressBar } from "@/components/admin/ProgressBar";
 import { createClient } from "@/lib/supabase/client";
@@ -724,6 +725,16 @@ export function ProyectoEditor({
                 proyectoId={proyecto.id}
                 clienteNombre={cliente.nombre}
                 clienteEmpresa={cliente.empresa}
+              />
+            </div>
+          ) : null}
+
+          {/* Saldos / Pagos */}
+          {cliente ? (
+            <div className="mt-6">
+              <SaldoSection
+                clienteId={cliente.id}
+                clienteNombre={cliente.nombre}
               />
             </div>
           ) : null}

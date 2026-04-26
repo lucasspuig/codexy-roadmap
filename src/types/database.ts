@@ -180,6 +180,12 @@ export type Database = {
         Update: Record<string, unknown>;
         Relationships: [];
       };
+      pagos: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: {

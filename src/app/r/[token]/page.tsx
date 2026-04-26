@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { loadPublicRoadmap } from "@/app/api/public/[token]/route";
+import { loadPublicSaldos } from "@/app/api/public/[token]/saldos/route";
 
+import { EstadoCuentaCard } from "./EstadoCuentaCard";
 import { Timeline } from "./Timeline";
 
 // Siempre dinámico — cada request chequea el token.
@@ -63,7 +65,10 @@ export default async function PublicRoadmapPage({ params }: PageProps) {
 
   if (!TOKEN_RE.test(token)) notFound();
 
-  const data = await loadPublicRoadmap(token);
+  const [data, saldos] = await Promise.all([
+    loadPublicRoadmap(token),
+    loadPublicSaldos(token).catch(() => null),
+  ]);
   if (!data) notFound();
 
   // Branding del cliente: si existen colores personalizados, overrideamos CSS vars.
@@ -100,7 +105,13 @@ export default async function PublicRoadmapPage({ params }: PageProps) {
       className="public-view-wrap print-page tech-bg"
       style={{ ...brandStyle, ...brandVars }}
     >
-      <Timeline token={token} initial={data} />
+      <Timeline
+        token={token}
+        initial={data}
+        saldosBlock={
+          saldos ? <EstadoCuentaCard saldos={saldos} /> : null
+        }
+      />
     </div>
   );
 }

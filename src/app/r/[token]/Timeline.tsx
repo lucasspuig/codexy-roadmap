@@ -32,9 +32,10 @@ const STATUS_LABEL: Record<FaseEstado, string> = {
 type Props = {
   token: string;
   initial: PublicPayload;
+  saldosBlock?: React.ReactNode;
 };
 
-export function Timeline({ token, initial }: Props) {
+export function Timeline({ token, initial, saldosBlock }: Props) {
   const [data, setData] = useState<PublicPayload>(initial);
   const [now, setNow] = useState<number>(() => Date.now());
   const [offline, setOffline] = useState(false);
@@ -410,6 +411,16 @@ export function Timeline({ token, initial }: Props) {
         >
           <ActiveSpotlight fase={summary.active} index={summary.activeIndex ?? 0} />
         </section>
+      ) : null}
+
+      {/* ─────────── Estado de cuenta (saldos + contratos) ─────────── */}
+      {saldosBlock ? (
+        <div
+          className="mb-10 animate-fade-in"
+          style={{ animationDelay: "480ms" }}
+        >
+          {saldosBlock}
+        </div>
       ) : null}
 
       {/* ─────────── Timeline ─────────── */}
