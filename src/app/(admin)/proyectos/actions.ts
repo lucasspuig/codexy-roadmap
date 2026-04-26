@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { generatePublicToken } from "@/lib/token";
 import type {
   Cliente,
@@ -356,11 +355,12 @@ export async function reorderFases(
     return { ok: false, error: "Argumentos inválidos" };
   }
 
-  // Usamos admin para evitar problemas con UNIQUE(proyecto_id, orden) en actualizaciones en cadena:
-  // Estrategia: primero seteamos todos a orden negativo (para liberar la unique), luego al orden final.
-  const admin = createAdminClient();
+  // Estrategia para evitar problemas con UNIQUE(proyecto_id, orden) en
+  // actualizaciones en cadena: primero seteamos todos a orden negativo (para
+  // liberar la unique), luego al orden final.
+  const supabase = await createClient();
   for (let i = 0; i < orderedIds.length; i++) {
-    const { error } = await admin
+    const { error } = await supabase
       .from("roadmap_fases")
       .update({ orden: -(i + 1) })
       .eq("id", orderedIds[i])
@@ -368,7 +368,7 @@ export async function reorderFases(
     if (error) return { ok: false, error: error.message };
   }
   for (let i = 0; i < orderedIds.length; i++) {
-    const { error } = await admin
+    const { error } = await supabase
       .from("roadmap_fases")
       .update({ orden: i + 1 })
       .eq("id", orderedIds[i])
@@ -469,15 +469,17 @@ export async function regenerateToken(
   if (!guard.ok) return guard;
   if (!proyecto_id) return { ok: false, error: "proyecto_id requerido" };
 
-  const admin = createAdminClient();
+  // Cliente regular: la RLS de roadmap_tokens_publicos permite a profiles
+  // activos hacer todo (insert/update/delete/select).
+  const supabase = await createClient();
   // Desactivar tokens previos
-  await admin
+  await supabase
     .from("roadmap_tokens_publicos")
     .update({ activo: false })
     .eq("proyecto_id", proyecto_id);
 
   const token = generatePublicToken();
-  const { error } = await admin.from("roadmap_tokens_publicos").insert({
+  const { error } = await supabase.from("roadmap_tokens_publicos").insert({
     token,
     proyecto_id,
     activo: true,
@@ -620,7 +622,8 @@ export async function updateBranding(input: {
 
 /**
  * Sube un logo al bucket `roadmap-branding` y retorna la URL pública.
- * Usa service-role para bypasear políticas de storage (defense in depth aparte del auth check).
+ * Usa el cliente regular (cookie auth). Las storage policies del bucket
+ * ya permiten escribir/borrar a profiles activos.
  */
 export async function uploadBrandLogo(formData: FormData): Promise<
   ActionResult<{ url: string; path: string }>
@@ -651,41 +654,25 @@ export async function uploadBrandLogo(formData: FormData): Promise<
           : "jpg";
   const path = `${proyectoId}/${Date.now()}.${ext}`;
 
-  // Defensa: el service role se necesita para escribir al bucket storage.
-  // Si no está, surface al user un error específico en vez de "unknown error".
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Config inválida";
-    return {
-      ok: false,
-      error: `Config del server incompleta: ${msg}. Revisá la env var SUPABASE_SERVICE_ROLE_KEY en Easypanel.`,
-    };
-  }
+  const supabase = await createClient();
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await admin.storage
+  const { error: upErr } = await supabase.storage
     .from("roadmap-branding")
     .upload(path, buffer, {
       contentType: file.type,
       cacheControl: "3600",
       upsert: false,
     });
-  if (upErr) {
-    // Errores comunes de storage: key inválida, bucket no existe, tamaño, etc.
-    const hint = upErr.message.toLowerCase().includes("jwt") ||
-      upErr.message.toLowerCase().includes("unauthorized")
-      ? " (probable: SUPABASE_SERVICE_ROLE_KEY mal cargada en Easypanel)"
-      : "";
-    return { ok: false, error: `${upErr.message}${hint}` };
-  }
+  if (upErr) return { ok: false, error: upErr.message };
 
-  const { data: pub } = admin.storage.from("roadmap-branding").getPublicUrl(path);
+  const { data: pub } = supabase.storage
+    .from("roadmap-branding")
+    .getPublicUrl(path);
   const url = pub.publicUrl;
 
   // Borrar logos anteriores de este proyecto (mantener storage limpio).
-  const { data: list } = await admin.storage
+  const { data: list } = await supabase.storage
     .from("roadmap-branding")
     .list(proyectoId, { limit: 100 });
   if (list && list.length > 1) {
@@ -694,12 +681,11 @@ export async function uploadBrandLogo(formData: FormData): Promise<
       .filter((f) => f.name !== current)
       .map((f) => `${proyectoId}/${f.name}`);
     if (toDelete.length > 0) {
-      await admin.storage.from("roadmap-branding").remove(toDelete);
+      await supabase.storage.from("roadmap-branding").remove(toDelete);
     }
   }
 
   // Actualizar proyecto con la nueva URL.
-  const supabase = await createClient();
   const { error: updErr } = await supabase
     .from("roadmap_proyectos")
     .update({ brand_logo_url: url })
@@ -716,17 +702,16 @@ export async function removeBrandLogo(input: {
   const guard = await assertAdmin();
   if (!guard.ok) return guard;
 
-  const admin = createAdminClient();
-  const { data: list } = await admin.storage
+  const supabase = await createClient();
+  const { data: list } = await supabase.storage
     .from("roadmap-branding")
     .list(input.proyecto_id, { limit: 100 });
   if (list && list.length > 0) {
-    await admin.storage
+    await supabase.storage
       .from("roadmap-branding")
       .remove(list.map((f) => `${input.proyecto_id}/${f.name}`));
   }
 
-  const supabase = await createClient();
   const { error } = await supabase
     .from("roadmap_proyectos")
     .update({ brand_logo_url: null })

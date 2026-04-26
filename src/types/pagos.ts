@@ -22,6 +22,14 @@ export interface Pago {
   comprobante_url: string | null;
   notas: string | null;
   visible_cliente: boolean;
+  /**
+   * Tipo de cambio aplicado al momento del pago. Solo se usa cuando la moneda
+   * del pago difiere de la moneda del contrato (ej. contrato en USD pagado en
+   * ARS). Es inmutable una vez seteado: representa el momento del pago.
+   *
+   * Convención: 1 USD = tipo_cambio_aplicado ARS.
+   */
+  tipo_cambio_aplicado: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -95,6 +103,7 @@ export interface PublicSaldosPayload {
       | "metodo"
       | "etapa"
       | "notas"
+      | "tipo_cambio_aplicado"
     >
   >;
 }

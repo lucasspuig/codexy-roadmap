@@ -376,18 +376,13 @@ export async function uploadAgencySignature(formData: FormData): Promise<
         : "jpg";
   const path = `agency/firma-codexy-${Date.now()}.${ext}`;
 
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (err) {
-    return {
-      ok: false,
-      error: `Config server: ${err instanceof Error ? err.message : "error"}`,
-    };
-  }
+  // Usamos el cliente regular: las storage policies del bucket
+  // contratos-firmas ya permiten escribir/borrar a profiles activos.
+  // Antes esto usaba admin (service_role) y rompía si la key estaba mal.
+  const supabase = await createClient();
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await admin.storage
+  const { error: upErr } = await supabase.storage
     .from("contratos-firmas")
     .upload(path, buffer, {
       contentType: file.type,
@@ -396,11 +391,13 @@ export async function uploadAgencySignature(formData: FormData): Promise<
     });
   if (upErr) return { ok: false, error: upErr.message };
 
-  const { data: pub } = admin.storage.from("contratos-firmas").getPublicUrl(path);
+  const { data: pub } = supabase.storage
+    .from("contratos-firmas")
+    .getPublicUrl(path);
   const url = pub.publicUrl;
 
-  // Borrar firmas antiguas en agency/
-  const { data: list } = await admin.storage
+  // Borrar firmas antiguas en agency/ para mantener storage limpio
+  const { data: list } = await supabase.storage
     .from("contratos-firmas")
     .list("agency", { limit: 50 });
   if (list && list.length > 1) {
@@ -409,11 +406,10 @@ export async function uploadAgencySignature(formData: FormData): Promise<
       .filter((f) => f.name !== current)
       .map((f) => `agency/${f.name}`);
     if (toDelete.length > 0) {
-      await admin.storage.from("contratos-firmas").remove(toDelete);
+      await supabase.storage.from("contratos-firmas").remove(toDelete);
     }
   }
 
-  const supabase = await createClient();
   const { error: updErr } = await supabase
     .from("agency_settings")
     .update({ signature_url: url, updated_by: guard.userId })

@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { Profile } from "@/types/database";
 import type { Contrato } from "@/types/contratos";
 import type { Pago, PagoMetodo } from "@/types/pagos";
@@ -228,18 +227,11 @@ export async function uploadComprobante(formData: FormData): Promise<
           : "jpg";
   const path = `comprobantes/${contratoId}/${Date.now()}.${ext}`;
 
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (err) {
-    return {
-      ok: false,
-      error: `Config server: ${err instanceof Error ? err.message : "error"}`,
-    };
-  }
+  // Cliente regular: las storage policies ya permiten al equipo activo escribir.
+  const supabase = await createClient();
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await admin.storage
+  const { error: upErr } = await supabase.storage
     .from("contratos-firmas")
     .upload(path, buffer, {
       contentType: file.type,
@@ -248,7 +240,7 @@ export async function uploadComprobante(formData: FormData): Promise<
     });
   if (upErr) return { ok: false, error: upErr.message };
 
-  const { data: pub } = admin.storage
+  const { data: pub } = supabase.storage
     .from("contratos-firmas")
     .getPublicUrl(path);
 

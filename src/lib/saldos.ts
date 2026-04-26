@@ -1,7 +1,10 @@
 // Cálculo de saldos a partir de contratos y pagos.
 // El "facturado" depende de la modalidad: para "mensual"/"unico_mas_mensual"
 // crece mes a mes; para "unico"/"50_50"/"custom" es el monto_total upfront.
+// Multi-moneda: los pagos se expresan en la moneda del contrato usando el
+// tipo_cambio_aplicado capturado al momento del pago.
 
+import { pagoEnMonedaContrato } from "@/lib/cambio";
 import type { Contrato } from "@/types/contratos";
 import type { ContratoSaldo, Pago, SaldoCliente } from "@/types/pagos";
 
@@ -64,15 +67,18 @@ export function facturadoDeContrato(
 }
 
 /**
- * Suma los pagos asociados a un contrato.
+ * Suma los pagos asociados a un contrato, expresados en la moneda del
+ * contrato. Si un pago se hizo en otra moneda (ej. ARS contra contrato USD),
+ * se convierte usando el tipo_cambio_aplicado capturado al momento del pago.
  */
 export function pagadoDeContrato(
   contratoId: string,
+  monedaContrato: string,
   pagos: Pago[],
 ): number {
   return pagos
     .filter((p) => p.contrato_id === contratoId)
-    .reduce((acc, p) => acc + Number(p.monto || 0), 0);
+    .reduce((acc, p) => acc + pagoEnMonedaContrato(p, monedaContrato), 0);
 }
 
 /**
@@ -84,7 +90,7 @@ export function saldoDeContrato(
   hasta: Date = new Date(),
 ): ContratoSaldo {
   const facturado = facturadoDeContrato(contrato, hasta);
-  const pagado = pagadoDeContrato(contrato.id, pagos);
+  const pagado = pagadoDeContrato(contrato.id, contrato.moneda, pagos);
   return {
     contrato_id: contrato.id,
     numero: contrato.numero,
