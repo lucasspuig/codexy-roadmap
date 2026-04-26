@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ContratoDocument } from "@/components/contratos/ContratoDocument";
 import { createClient } from "@/lib/supabase/server";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type PageProps = {
-  params: Promise<{ id: string; contratoId: string }>;
+  params: Promise<{ contratoId: string }>;
 };
 
 export async function generateMetadata({
@@ -34,6 +34,14 @@ export async function generateMetadata({
 export default async function ImprimirContratoPage({ params }: PageProps) {
   const { contratoId } = await params;
   const supabase = await createClient();
+
+  // Auth gate explícito: si no hay sesión, mandar al login.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect(`/login?next=/imprimir/${contratoId}`);
+  }
 
   const { data: contratoRow } = await supabase
     .from("contratos")
@@ -65,7 +73,14 @@ export default async function ImprimirContratoPage({ params }: PageProps) {
   const agency = agencyRow as unknown as AgencySettings | null;
 
   return (
-    <div className="contrato-print-wrap" style={{ background: "#f6f5f1", minHeight: "100vh", padding: "18px 0" }}>
+    <div
+      className="contrato-print-wrap"
+      style={{
+        background: "#f6f5f1",
+        minHeight: "100vh",
+        padding: "18px 0",
+      }}
+    >
       <ContratoDocument
         contrato={contrato}
         cliente={cliente}

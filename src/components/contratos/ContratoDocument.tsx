@@ -3,7 +3,7 @@
  * Usa los textos legales reales del template Codexy.
  *
  * Se usa por:
- *  - /proyectos/[id]/contratos/[id]/imprimir (dark+light, optimizado para print)
+ *  - /imprimir/[contratoId] (admin auth, optimizado para print → PDF)
  *  - /c/[token] (vista pública del cliente)
  */
 

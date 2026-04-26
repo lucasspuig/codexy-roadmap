@@ -105,9 +105,7 @@ export function ContratoEditor({
   }, [open, contratoId, onClose]);
 
   const isBorrador = contrato?.estado === "borrador";
-  const printHref = contrato
-    ? `/proyectos/${contrato.proyecto_id ?? "_"}/contratos/${contrato.id}/imprimir`
-    : "#";
+  const printHref = contrato ? `/imprimir/${contrato.id}` : "#";
 
   async function handleSave() {
     if (!contrato || !isBorrador) return;

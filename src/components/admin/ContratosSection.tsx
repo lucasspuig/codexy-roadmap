@@ -110,8 +110,7 @@ export function ContratosSection({
   }
 
   function openPrint(id: string) {
-    const proy = proyectoId ?? "_";
-    window.open(`/proyectos/${proy}/contratos/${id}/imprimir`, "_blank", "noopener,noreferrer");
+    window.open(`/imprimir/${id}`, "_blank", "noopener,noreferrer");
   }
 
   async function executeConfirm() {
