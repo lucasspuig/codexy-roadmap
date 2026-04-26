@@ -138,10 +138,11 @@ export const ALCANCE_IMPLEMENTACION_EXCLUYE: string[] = [
 ];
 
 export const ALCANCE_MANTENIMIENTO_DEFAULT: string[] = [
-  "Soporte técnico continuo del sistema entregado",
-  "Hosting y mantenimiento de los servidores asociados al sistema",
+  "Soporte técnico en horarios predeterminados (lunes a viernes 08:00–20:00 hs Argentina)",
+  "Hosting y mantenimiento del servidor asociado al sistema",
   "Consumo de tokens de IA necesarios para la operación normal del sistema",
-  "Ajustes menores y asistencia sobre el funcionamiento del sistema",
+  "Monitoreo de las integraciones (WhatsApp, agenda, automatizaciones) y resolución de errores",
+  "Ajustes menores y asistencia sobre el uso y operación del sistema",
 ];
 
 export const ALCANCE_MANTENIMIENTO_EXCLUYE: string[] = [

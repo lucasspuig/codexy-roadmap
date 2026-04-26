@@ -275,17 +275,30 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
           correcciones dentro del alcance acordado.
         </li>
         <li>
-          <strong>Soporte.</strong> Codexy brindará atención de lunes a viernes
-          de 08:00 a 20:00 hs (horario Argentina), excluyendo feriados.
-          Comunicaciones fuera de horario serán respondidas el siguiente día
-          hábil.
+          <strong>Soporte.</strong> EL PRESTADOR brindará atención de{" "}
+          <strong>lunes a viernes de 08:00 a 20:00 hs (horario Argentina)</strong>,
+          excluyendo feriados. Las consultas recibidas dentro de ese horario se
+          responden el mismo día hábil. Comunicaciones fuera de horario,
+          fines de semana o feriados serán respondidas el siguiente día hábil.
+          El soporte se canaliza por los medios oficiales que EL PRESTADOR
+          informe (WhatsApp, email u otro acordado); fuera de esos canales no
+          se garantiza atención.
         </li>
         <li>
-          <strong>Pagos.</strong>{" "}
-          {pagosTexto
-            ? `${pagosTexto}.`
-            : `Total ${fmtMoney(contrato.monto_total, moneda)}.`}{" "}
-          Los valores expresados en {moneda}.
+          <strong>Pagos — Implementación.</strong> Por el desarrollo,
+          configuración e implementación inicial del sistema EL CLIENTE abona
+          un <strong>pago único</strong> total de{" "}
+          <strong>{fmtMoney(contrato.monto_total, moneda)}</strong>.
+          {pagosTexto ? (
+            <>
+              {" "}
+              Para mayor flexibilidad, ese pago único puede dividirse en hasta
+              dos o tres cuotas según la complejidad y lo acordado entre las
+              partes; en este contrato la división queda establecida así:{" "}
+              {pagosTexto}.
+            </>
+          ) : null}{" "}
+          Los valores están expresados en {moneda}.
           <MonedaNota moneda={moneda} />
           {" "}Los precios no incluyen impuestos locales (IVA).
           {contrato.plazo_implementacion ? (
@@ -294,30 +307,54 @@ function ClausulasImplementacion({ contrato }: { contrato: Contrato }) {
               Plazo estimado de implementación:{" "}
               <strong>{contrato.plazo_implementacion}</strong>.
             </>
-          ) : null}
+          ) : null}{" "}
+          Una vez completado este pago de desarrollo, comienza el servicio de
+          mantenimiento mensual descripto en la cláusula siguiente.
         </li>
         <li>
-          <strong>Mantenimiento Futuro.</strong>{" "}
-          {tieneMant ? (
-            <>
-              {fmtMoney(mensual!, moneda)} mensual, día 1 de cada mes
-              calendario, comenzando al mes siguiente de la entrega del sistema;
-              mora {mora}% acumulativo después de {dias} días.{" "}
-            </>
-          ) : (
-            "El mantenimiento mensual será definido al finalizar la implementación. "
-          )}
-          Incluye soporte técnico, hosting/servidor y consumo de tokens de IA
-          necesarios para la operación normal del sistema. No incluye nuevas
-          funcionalidades, cambios estructurales, integraciones adicionales ni
-          ampliación de alcance.
+          <strong>Mantenimiento mensual posterior al desarrollo.</strong>{" "}
+          Finalizada la implementación y completado el pago único de
+          desarrollo, el sistema entra en régimen de{" "}
+          <strong>mantenimiento mensual mínimo obligatorio</strong>, condición
+          necesaria para que el servicio siga operativo.
           {tieneMant ? (
             <>
               {" "}
-              La cuota podrá ser revisada y ajustada cada tres (3) meses según
-              el desempeño del sistema, el volumen de uso real y el consumo de
-              tokens de IA y servidor; cualquier ajuste será comunicado con al
-              menos quince (15) días de anticipación.
+              Costo:{" "}
+              <strong>{fmtMoney(mensual!, moneda)} por mes</strong>, con
+              vencimiento el día 1 de cada mes calendario, comenzando al mes
+              siguiente de la entrega del sistema. Plazo de gracia: {dias}{" "}
+              días. Vencido el plazo: suspensión del servicio + recargo {mora}%
+              mensual acumulativo.
+            </>
+          ) : (
+            <>
+              {" "}
+              El monto exacto será informado al finalizar la implementación,
+              en función del consumo estimado de tokens de IA y servidor.
+            </>
+          )}{" "}
+          La cuota mensual es un costo relevante del servicio (no es
+          simbólica) e incluye:{" "}
+          <strong>
+            soporte técnico continuo en los horarios indicados en la cláusula
+            de Soporte, hosting y mantenimiento del servidor, consumo de
+            tokens de IA dentro del volumen estimado, monitoreo de las
+            integraciones y ajustes menores de funcionamiento
+          </strong>
+          . <strong>NO incluye</strong> nuevas funcionalidades, rediseños,
+          desarrollos adicionales, integraciones externas no presupuestadas,
+          campañas publicitarias ni cambios estructurales (todo eso se cotiza
+          aparte).
+          {tieneMant ? (
+            <>
+              {" "}
+              <strong>Revisión cada 3 meses.</strong> El monto mensual podrá
+              ajustarse cada tres (3) meses según el desempeño del sistema, el
+              volumen de uso real, el consumo efectivo de tokens de IA y los
+              costos asociados al servidor. Cualquier ajuste a futuro será
+              comunicado al cliente con al menos quince (15) días de
+              anticipación a su entrada en vigencia.
             </>
           ) : null}
         </li>
@@ -398,23 +435,31 @@ function ClausulasMantenimiento({ contrato }: { contrato: Contrato }) {
           ) : null}
         </li>
         <li>
-          <strong>Soporte.</strong> Lunes a viernes 08:00 a 20:00 hs
-          (Argentina), excluyendo feriados. Consultas fuera de horario
-          respondidas el siguiente día hábil.
+          <strong>Soporte.</strong> EL PRESTADOR brindará atención de{" "}
+          <strong>
+            lunes a viernes de 08:00 a 20:00 hs (horario Argentina)
+          </strong>
+          , excluyendo feriados. Las consultas recibidas dentro de ese horario
+          se responden el mismo día hábil. Consultas fuera de horario, fines de
+          semana o feriados se responden el siguiente día hábil. El soporte se
+          canaliza por los medios oficiales que EL PRESTADOR informe.
         </li>
         <li>
-          <strong>Pagos.</strong> Monto mensual:{" "}
-          <strong>{fmtMoney(mensual, moneda)}</strong>. Día 1 de cada mes.
-          Plazo de gracia: {dias} días. Vencido el plazo: suspensión + recargo{" "}
-          {mora}% mensual acumulativo. Los valores expresados en {moneda}.
+          <strong>Pagos.</strong> Cuota mensual mínima:{" "}
+          <strong>{fmtMoney(mensual, moneda)}</strong>, con vencimiento el día
+          1 de cada mes calendario. Plazo de gracia: {dias} días. Vencido el
+          plazo: suspensión del servicio + recargo {mora}% mensual acumulativo.
+          La cuota mensual es un costo relevante del servicio (no es
+          simbólica). Los valores se expresan en {moneda}.
           <MonedaNota moneda={moneda} />
         </li>
         <li>
-          <strong>Revisión trimestral.</strong> El monto del mantenimiento
-          podrá ser revisado y ajustado cada tres (3) meses en función del
+          <strong>Revisión trimestral.</strong> El monto mensual podrá
+          revisarse y ajustarse <strong>cada tres (3) meses</strong> según el
           desempeño del sistema, el volumen de uso, el consumo real de tokens
-          de IA y los costos asociados al servidor. Cualquier ajuste será
-          comunicado al cliente con al menos quince (15) días de anticipación.
+          de IA y los costos asociados al servidor. Es esperable que el monto
+          pueda aumentar a futuro acompañando esos costos. Cualquier ajuste se
+          comunicará con al menos quince (15) días de anticipación.
         </li>
         <li>
           <strong>Limitaciones.</strong> Codexy no responde por: caídas de
@@ -527,35 +572,61 @@ function ClausulasCombo({ contrato }: { contrato: Contrato }) {
           </ul>
         </li>
         <li>
-          <strong>Pagos.</strong> Pago único de implementación:{" "}
-          <strong>{fmtMoney(monto, moneda)}</strong>, abonado a la firma del
-          presente contrato.
-          {tieneMensual ? (
-            <>
-              {" "}
-              Cuota mensual de mantenimiento:{" "}
-              <strong>{fmtMoney(mensual!, moneda)}</strong>, con vencimiento el
-              día 1 de cada mes calendario, comenzando al mes siguiente de la
-              entrega del sistema. Plazo de gracia: {dias} días. Vencido el
-              plazo: suspensión del servicio + recargo {mora}% mensual
-              acumulativo.
-            </>
-          ) : (
-            " La cuota mensual de mantenimiento se definirá al finalizar la implementación."
-          )}{" "}
-          Los valores expresados en {moneda}.
+          <strong>Pagos — Implementación.</strong> Por el desarrollo inicial
+          del sistema EL CLIENTE abona un <strong>pago único</strong> de{" "}
+          <strong>{fmtMoney(monto, moneda)}</strong>. Para mayor flexibilidad,
+          este pago único puede dividirse en hasta dos o tres cuotas según la
+          complejidad y lo acordado entre las partes (la división puntual queda
+          reflejada en el detalle de pagos del presente contrato). Los valores
+          se expresan en {moneda}.
           <MonedaNota moneda={moneda} />
           {" "}Los precios no incluyen impuestos locales (IVA).
         </li>
         <li>
+          <strong>Mantenimiento mensual mínimo (posterior al desarrollo).</strong>{" "}
+          Una vez completado el pago de implementación y entregado el sistema,
+          comienza el régimen de{" "}
+          <strong>mantenimiento mensual mínimo obligatorio</strong>, condición
+          necesaria para que el servicio siga operativo.
+          {tieneMensual ? (
+            <>
+              {" "}
+              Costo:{" "}
+              <strong>{fmtMoney(mensual!, moneda)} por mes</strong>, con
+              vencimiento el día 1 de cada mes calendario, comenzando al mes
+              siguiente de la entrega del sistema. Plazo de gracia: {dias}{" "}
+              días. Vencido el plazo: suspensión del servicio + recargo {mora}%
+              mensual acumulativo.
+            </>
+          ) : (
+            <>
+              {" "}
+              El monto exacto será informado al finalizar la implementación,
+              en función del consumo estimado de tokens de IA y servidor.
+            </>
+          )}{" "}
+          La cuota mensual es un costo relevante del servicio (no es
+          simbólica) e incluye:{" "}
+          <strong>
+            soporte técnico continuo en los horarios indicados en la cláusula
+            de Soporte, hosting y mantenimiento del servidor, consumo de
+            tokens de IA dentro del volumen estimado, monitoreo de las
+            integraciones y ajustes menores de funcionamiento del sistema
+          </strong>
+          . <strong>NO incluye</strong> nuevas funcionalidades, rediseños,
+          desarrollos adicionales, integraciones externas no presupuestadas,
+          campañas publicitarias ni cambios estructurales (todo eso se cotiza
+          aparte).
+        </li>
+        <li>
           <strong>Revisión trimestral del mantenimiento.</strong> La cuota
-          mensual de mantenimiento podrá ser revisada y ajustada cada tres (3)
-          meses en función del desempeño del sistema, el volumen de uso real,
-          el consumo de tokens de IA y los costos asociados al servidor.
-          Cualquier ajuste será informado al cliente con al menos quince (15)
-          días de anticipación a su entrada en vigencia. El cliente podrá
-          aceptar el nuevo valor o rescindir el servicio de mantenimiento sin
-          penalidad alguna.
+          mensual podrá ser revisada y ajustada{" "}
+          <strong>cada tres (3) meses</strong> en función del desempeño del
+          sistema, el volumen de uso real, el consumo efectivo de tokens de IA
+          y los costos asociados al servidor. Es esperable que el monto pueda
+          aumentar a futuro acompañando esos costos. Cualquier ajuste será
+          informado al cliente con al menos quince (15) días de anticipación a
+          su entrada en vigencia.
         </li>
         <li>
           <strong>Información y Accesos.</strong> El cliente se compromete a
@@ -569,10 +640,16 @@ function ClausulasCombo({ contrato }: { contrato: Contrato }) {
           realizarán correcciones dentro del alcance acordado.
         </li>
         <li>
-          <strong>Soporte.</strong> Codexy brindará atención de lunes a
-          viernes de 08:00 a 20:00 hs (horario Argentina), excluyendo
-          feriados. Comunicaciones fuera de horario serán respondidas el
-          siguiente día hábil.
+          <strong>Soporte.</strong> EL PRESTADOR brindará atención de{" "}
+          <strong>
+            lunes a viernes de 08:00 a 20:00 hs (horario Argentina)
+          </strong>
+          , excluyendo feriados. Las consultas recibidas dentro de ese horario
+          se responden el mismo día hábil. Comunicaciones fuera de horario,
+          fines de semana o feriados serán respondidas el siguiente día hábil.
+          El soporte se canaliza por los medios oficiales que EL PRESTADOR
+          informe (WhatsApp, email u otro acordado); fuera de esos canales no
+          se garantiza atención.
         </li>
         <li>
           <strong>Costos de Plataformas Externas.</strong> El sistema puede

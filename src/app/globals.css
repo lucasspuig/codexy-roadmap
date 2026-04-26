@@ -652,17 +652,62 @@ html[data-theme="light"] .admin-shell::after {
       color: #6e6e6e;
     }
   }
+
+  /* Ocultar todo el chrome del admin layout en print: Topbar, footer y
+     cualquier panel/popover que pueda estar montado. Solo queremos ver
+     el documento. */
+  .admin-shell > header,
+  .admin-shell > footer,
+  [data-cmd-palette],
+  [data-toaster] {
+    display: none !important;
+  }
+
+  /* El wrapper de la página de impresión: sin background, sin padding
+     ni min-height (el min-height: 100vh causaba página 1 vacía). */
+  .contrato-print-wrap {
+    background: #ffffff !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  /* Idem para el shell del admin layout: que no aporte altura/fondo. */
+  .admin-shell,
+  .admin-shell > main {
+    background: #ffffff !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+  /* No queremos ningún fondo decorativo en impresión */
+  body, html {
+    background: #ffffff !important;
+  }
+
   .contrato-doc {
     box-shadow: none !important;
     border-radius: 0 !important;
     padding: 0 !important;
     max-width: none !important;
+    page-break-before: avoid;
+    break-before: avoid;
   }
   /* Forzá colores de print en todos los descendientes del documento */
   .contrato-doc * {
     color-adjust: exact;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  /* Evitar quiebres feos dentro de un ítem de cláusula o fila de tabla */
+  .contrato-clauses li,
+  .contrato-table tr,
+  .contrato-firma-block,
+  .contrato-info-box {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  /* Las firmas siempre arrancan en página propia si no caben enteras */
+  .contrato-firmas-section {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
   .contrato-print-floating {
     display: none !important;
