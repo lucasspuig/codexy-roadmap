@@ -379,6 +379,11 @@ html[data-theme="light"] .admin-shell::after {
   align-items: center;
   justify-content: center;
 }
+.contrato-brand-mark svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
 .contrato-brand-x {
   font-family: var(--ff-mono);
   font-weight: 700;

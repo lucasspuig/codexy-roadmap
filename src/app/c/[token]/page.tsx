@@ -111,6 +111,7 @@ export default async function PublicSignPage({ params }: PageProps) {
         {/* Header / cliente intro */}
         <header className="mb-6 flex items-center gap-3">
           <div
+            aria-label="Codexy"
             style={{
               width: 38,
               height: 38,
@@ -120,13 +121,18 @@ export default async function PublicSignPage({ params }: PageProps) {
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              fontFamily: "var(--ff-mono)",
-              fontWeight: 700,
-              letterSpacing: "-0.04em",
-              fontSize: 18,
             }}
           >
-            X
+            <svg
+              viewBox="0 0 100 100"
+              width="22"
+              height="22"
+              fill="currentColor"
+              aria-hidden
+            >
+              <path d="M12 10 L28 10 Q32 10 35 14 L50 36 Q52 39 52 42 L52 58 Q52 61 50 64 L35 86 Q32 90 28 90 L12 90 Q8 90 10 86 L30 54 Q33 50 30 46 L10 14 Q8 10 12 10 Z" />
+              <path d="M88 10 L72 10 Q68 10 65 14 L50 36 Q48 39 48 42 L48 58 Q48 61 50 64 L65 86 Q68 90 72 90 L88 90 Q92 90 90 86 L70 54 Q67 50 70 46 L90 14 Q92 10 88 10 Z" />
+            </svg>
           </div>
           <div className="flex-1 min-w-0">
             <div
