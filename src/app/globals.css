@@ -49,15 +49,22 @@
 }
 
 /* ═══ Admin palette — LIGHT (aplicado cuando html[data-theme="light"]) ═══ */
-/* Filtro del logo horizontal que se adapta al theme.
-   dark: invierte (logo negro → blanco para contrastar con fondo oscuro)
-   light: sin cambios (logo negro sobre fondo claro) */
-:root {
-  --logo-adaptive-filter: invert(1) brightness(2);
+/* Theme-aware asset swap:
+   Logo.tsx renderiza dos imgs (negra + blanca). Mostramos sólo la
+   correcta por theme, pero usamos visibility en vez de display para
+   que el contenedor no pierda dimensiones cuando se oculta el "padre"
+   que define el width. */
+.theme-asset-light,
+.theme-asset-dark {
+  transition: opacity 200ms ease;
 }
-html[data-theme="light"] {
-  --logo-adaptive-filter: none;
-}
+.theme-asset-light { opacity: 0; visibility: hidden; }
+.theme-asset-dark { opacity: 1; visibility: visible; }
+html[data-theme="light"] .theme-asset-light { opacity: 1; visibility: visible; }
+html[data-theme="light"] .theme-asset-dark { opacity: 0; visibility: hidden; }
+
+/* Compatibilidad legacy: si algo todavía referencia esta var, no rompe */
+:root { --logo-adaptive-filter: none; }
 
 html[data-theme="light"] {
   --color-bg: #fafaf7;

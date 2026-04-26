@@ -11,7 +11,7 @@ export default function LoginPage() {
     <div className="flex-1 flex items-center justify-center p-5">
       <div className="bg-[var(--color-s1)] border border-[var(--color-b1)] rounded-[14px] p-7 sm:p-9 w-full max-w-sm shadow-[var(--shadow-lg)]">
         <div className="flex items-center justify-center mb-7">
-          <LogoFull height={42} tone="adaptive" />
+          <LogoFull height={32} tone="adaptive" />
         </div>
         <h1 className="text-[20px] font-semibold text-center mb-1">
           Panel de administración

@@ -1,8 +1,10 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Isologo Codexy (la X). Renderiza el PNG oficial si existe, con fondo púrpura
- * de marca. Usar `variant="plain"` si solo querés la X sin fondo.
+ * Isologo Codexy (la X). Renderiza el PNG oficial.
+ *
+ * - variant="badge" → cuadrado púrpura con X blanca adentro (siempre)
+ * - variant="plain" → solo la X, color adapta al theme (negra en light, blanca en dark)
  */
 export function Logo({
   size = 36,
@@ -15,29 +17,41 @@ export function Logo({
   variant?: "badge" | "plain";
   color?: string;
 }) {
-  // Plain: solo la X sin fondo (para usar sobre colores de marca ya aplicados)
   if (variant === "plain") {
     return (
       <span
-        className={cn("inline-flex items-center justify-center", className)}
+        className={cn("inline-flex items-center justify-center relative", className)}
         style={{ width: size, height: size }}
         aria-label="Codexy"
       >
+        {/* Versión negra para light mode */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/brand/codexy-x-black.png"
+          src="/brand/iso-logo-full-black.png"
           alt="Codexy"
           width={size}
           height={size}
-          className="h-full w-full object-contain"
-          style={{ filter: color === "white" ? "invert(1)" : undefined }}
+          className="theme-asset-light h-full w-full object-contain"
+          loading="eager"
+          decoding="async"
+        />
+        {/* Versión blanca para dark mode */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/codexy-x-white.png"
+          alt=""
+          aria-hidden
+          width={size}
+          height={size}
+          className="theme-asset-dark absolute inset-0 h-full w-full object-contain"
           loading="eager"
           decoding="async"
         />
       </span>
     );
   }
-  // Badge: X blanca sobre cuadrado púrpura de marca
+
+  // Badge: X blanca sobre cuadrado púrpura de marca (siempre blanca, no rota)
   const innerSize = Math.round(size * 0.64);
   return (
     <div
@@ -52,12 +66,13 @@ export function Logo({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/brand/codexy-x-black.png"
+        src="/brand/codexy-x-white.png"
         alt=""
+        aria-hidden
         width={innerSize}
         height={innerSize}
         className="object-contain"
-        style={{ filter: "invert(1) brightness(2)" }}
+        style={{ width: innerSize, height: innerSize }}
         loading="eager"
         decoding="async"
       />
@@ -67,6 +82,10 @@ export function Logo({
 
 /**
  * Logo horizontal completo "X CODEXY". Úsalo en splash / login / footer.
+ *
+ * - tone="adaptive" (default) → negro en light, blanco en dark (auto via CSS)
+ * - tone="white" → siempre blanco (para fondos de marca)
+ * - tone="black" → siempre negro (para fondos claros garantizados)
  */
 export function LogoFull({
   height = 32,
@@ -75,28 +94,50 @@ export function LogoFull({
 }: {
   height?: number;
   className?: string;
-  /**
-   * adaptive: se invierte en dark mode, queda negro en light mode
-   * white: siempre blanco (para fondos de marca púrpura)
-   * black: siempre negro (para fondos claros garantizados)
-   */
   tone?: "adaptive" | "white" | "black";
 }) {
-  const filter =
+  if (tone === "adaptive") {
+    return (
+      <span
+        className={cn("relative inline-block", className)}
+        style={{ height }}
+        aria-label="Codexy"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/codexy-full-black.png"
+          alt="Codexy"
+          className="theme-asset-light w-auto object-contain"
+          style={{ height }}
+          loading="eager"
+          decoding="async"
+        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/codexy-white-logo.png"
+          alt=""
+          aria-hidden
+          className="theme-asset-dark absolute inset-0 w-auto object-contain"
+          style={{ height }}
+          loading="eager"
+          decoding="async"
+        />
+      </span>
+    );
+  }
+
+  const src =
     tone === "white"
-      ? "invert(1) brightness(2)"
-      : tone === "black"
-        ? undefined
-        : "var(--logo-adaptive-filter)";
+      ? "/brand/codexy-white-logo.png"
+      : "/brand/codexy-full-black.png";
   return (
     <span className={cn("inline-flex items-center", className)} aria-label="Codexy">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/brand/codexy-full-black.png"
+        src={src}
         alt="Codexy"
-        height={height}
         className="w-auto object-contain"
-        style={{ height, filter }}
+        style={{ height }}
         loading="eager"
         decoding="async"
       />
