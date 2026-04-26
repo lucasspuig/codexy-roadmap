@@ -645,6 +645,381 @@ html[data-theme="light"] .admin-shell::after {
   text-align: center;
 }
 
+/* ═════════════════════════════════════════════════════════
+   Estado de cuenta — documento profesional para PDF
+   Paleta Codexy: brand violeta + verde para "completado" +
+   beige para fondo de página + tinte info para boxes
+   ═════════════════════════════════════════════════════════ */
+
+.estado-cuenta-doc {
+  --ec-brand: #6d28d9;          /* violeta Codexy primario */
+  --ec-brand-dark: #4c1d95;     /* violeta oscuro para headers */
+  --ec-brand-tint: #f3effe;     /* tinte muy suave para boxes */
+  --ec-brand-tint-2: #e9e1fb;   /* tinte para hover/accent */
+  --ec-text: #1f1f23;
+  --ec-text-soft: #5b5b66;
+  --ec-text-mute: #8a8a94;
+  --ec-border: #e6e3df;
+  --ec-border-strong: #d2cfca;
+  --ec-bg: #ffffff;
+  --ec-page-bg: #f6f5f1;
+  --ec-success: #15803d;
+  --ec-success-bg: #d9f3e2;
+  --ec-success-border: rgba(21, 128, 61, 0.30);
+  --ec-warn: #b45309;
+  --ec-warn-bg: #fef3c7;
+  --ec-warn-border: rgba(180, 83, 9, 0.35);
+  --ec-info-bg: #f1efff;
+  --ec-info-border: rgba(109, 40, 217, 0.25);
+
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--ec-bg);
+  color: var(--ec-text);
+  font-family: var(--ff-sans, system-ui, -apple-system, sans-serif);
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 26px 28px 24px;
+  border-radius: 8px;
+  box-shadow: 0 8px 30px -12px rgba(0, 0, 0, 0.18);
+}
+.estado-cuenta-doc * {
+  box-sizing: border-box;
+}
+.estado-cuenta-doc .ec-mono {
+  font-family: var(--ff-mono, ui-monospace, monospace);
+  letter-spacing: -0.005em;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.ec-header {
+  text-align: center;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--ec-border);
+  margin-bottom: 18px;
+}
+.ec-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ec-brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--ec-brand);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ec-brand-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.20em;
+  color: var(--ec-text);
+}
+.ec-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ec-text);
+  margin: 0 0 4px;
+}
+.ec-subtitle {
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--ec-text-soft);
+  margin: 0;
+}
+
+/* ── Cliente / documento info ──────────────────────────── */
+.ec-info-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+.ec-info-col--right {
+  text-align: right;
+}
+.ec-info-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ec-text-mute);
+  margin-bottom: 4px;
+}
+.ec-info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ec-text);
+}
+.ec-info-sub {
+  font-size: 11.5px;
+  color: var(--ec-text-soft);
+  margin-top: 2px;
+}
+
+/* ── Saludo box ────────────────────────────────────────── */
+.ec-greeting {
+  background: var(--ec-brand-tint);
+  border: 1px solid var(--ec-info-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+}
+.ec-greeting strong {
+  color: var(--ec-text);
+  font-weight: 700;
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.ec-greeting p {
+  font-size: 12px;
+  color: var(--ec-text-soft);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Sección ───────────────────────────────────────────── */
+.ec-section {
+  margin: 22px 0;
+}
+.ec-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ec-brand);
+  letter-spacing: -0.005em;
+  margin: 0 0 10px;
+}
+
+/* ── Banner status (ok/info) ───────────────────────────── */
+.ec-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.ec-banner--ok {
+  background: var(--ec-success-bg);
+  border: 1px solid var(--ec-success-border);
+  color: var(--ec-success);
+}
+.ec-banner--ok strong {
+  color: var(--ec-success);
+}
+.ec-banner--info {
+  background: var(--ec-info-bg);
+  border: 1px solid var(--ec-info-border);
+  color: var(--ec-text);
+}
+.ec-banner-mark {
+  font-size: 12px;
+  line-height: 1;
+  padding-top: 2px;
+}
+
+/* ── Tabla ─────────────────────────────────────────────── */
+.ec-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--ec-border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12px;
+}
+.ec-table thead tr {
+  background: var(--ec-brand-dark);
+  color: #fff;
+}
+.ec-table th {
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+}
+.ec-th-left { text-align: left; }
+.ec-th-right { text-align: right; }
+.ec-table td {
+  padding: 11px 12px;
+  border-top: 1px solid var(--ec-border);
+  vertical-align: top;
+  color: var(--ec-text);
+}
+.ec-table tbody tr:first-child td {
+  border-top: none;
+}
+.ec-td-right { text-align: right; }
+.ec-concepto-titulo {
+  font-weight: 700;
+  font-size: 12.5px;
+  margin-bottom: 2px;
+  color: var(--ec-text);
+}
+.ec-concepto-desc {
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--ec-text-soft);
+  margin-bottom: 2px;
+  line-height: 1.45;
+}
+.ec-concepto-meta {
+  font-size: 10.5px;
+  color: var(--ec-text-mute);
+  margin-top: 3px;
+}
+.ec-monto {
+  font-weight: 700;
+}
+.ec-monto-sub {
+  font-weight: 500;
+  font-size: 10.5px;
+  color: var(--ec-text-mute);
+  margin-top: 2px;
+}
+
+/* Total row del fondo brand */
+.ec-row-total {
+  background: var(--ec-brand-dark);
+}
+.ec-row-total td {
+  background: var(--ec-brand-dark);
+  color: #fff;
+  border-top: 1px solid var(--ec-brand-dark);
+}
+.ec-td-total {
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.01em;
+}
+
+/* Filas con acentos por estado en el cronograma */
+.ec-row--accent-ok td:first-child {
+  color: var(--ec-success);
+  font-weight: 600;
+}
+.ec-row--accent-info td:first-child {
+  color: var(--ec-warn);
+  font-weight: 600;
+}
+.ec-row--accent-brand td:first-child {
+  color: var(--ec-brand);
+  font-weight: 600;
+}
+.ec-row-sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.95;
+}
+
+/* ── Fineprint ─────────────────────────────────────────── */
+.ec-fineprint {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ec-text-soft);
+  margin: 8px 2px 0;
+  line-height: 1.55;
+}
+
+/* ── Resumen ejecutivo ─────────────────────────────────── */
+.ec-resumen {
+  margin: 26px 0 18px;
+  background: var(--ec-brand-tint);
+  border: 1px solid var(--ec-info-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.ec-resumen-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ec-brand);
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+.ec-resumen-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ec-resumen-li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ec-text);
+}
+.ec-resumen-li--ok strong { color: var(--ec-success); }
+.ec-resumen-li--ok .ec-resumen-mark { color: var(--ec-success); }
+.ec-resumen-li--warn strong { color: var(--ec-warn); }
+.ec-resumen-li--warn .ec-resumen-mark { color: var(--ec-warn); }
+.ec-resumen-li--info strong { color: var(--ec-text); }
+.ec-resumen-li--info .ec-resumen-mark { color: var(--ec-brand); }
+.ec-resumen-li--brand strong { color: var(--ec-brand-dark); }
+.ec-resumen-li--brand .ec-resumen-mark { color: var(--ec-brand); }
+.ec-resumen-mark {
+  font-weight: 700;
+  font-size: 12px;
+  padding-top: 1px;
+  flex-shrink: 0;
+  color: var(--ec-brand);
+}
+.ec-resumen-fine {
+  margin: 12px 0 0;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ec-text-soft);
+  line-height: 1.55;
+}
+
+/* ── Footer ────────────────────────────────────────────── */
+.ec-footer {
+  text-align: center;
+  font-size: 10.5px;
+  font-style: italic;
+  color: var(--ec-text-mute);
+  padding-top: 14px;
+  margin-top: 18px;
+  border-top: 1px dashed var(--ec-border);
+}
+
+/* ── Print del Estado de cuenta ────────────────────────── */
+@media print {
+  .estado-cuenta-print-wrap {
+    background: #ffffff !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+  .estado-cuenta-doc {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .estado-cuenta-doc * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ec-section,
+  .ec-resumen,
+  .ec-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+
 /* ── Print contrato ─────────────────────────────────────── */
 @media print {
   @page {

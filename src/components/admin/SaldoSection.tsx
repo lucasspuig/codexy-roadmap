@@ -8,6 +8,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  FileText,
   Pencil,
   Plus,
   Trash2,
@@ -135,22 +136,41 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
         <h3 className="text-[13px] font-semibold text-[var(--color-t1)]">
           Saldos y pagos
         </h3>
-        <button
-          type="button"
-          onClick={() => {
-            if (contratosFacturables.length === 0) {
-              toast.error(
-                "Necesitás un contrato emitido o firmado para registrar pagos",
-              );
-              return;
-            }
-            setPagoOpen(true);
-          }}
-          className="ml-auto inline-flex items-center gap-1.5 h-8 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] hover:bg-[var(--color-brand-muted)] transition-all"
-        >
-          <Plus size={13} />
-          Registrar pago
-        </button>
+        <div className="ml-auto flex items-center gap-1.5">
+          {contratosFacturables.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                window.open(
+                  `/imprimir/cuenta/${clienteId}`,
+                  "_blank",
+                  "noopener,noreferrer",
+                );
+              }}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-info-border)] hover:text-[var(--color-info)] hover:bg-[var(--color-info-muted)] transition-all"
+              title="Generar PDF de Estado de cuenta"
+            >
+              <FileText size={13} />
+              <span className="hidden sm:inline">PDF de cuenta</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              if (contratosFacturables.length === 0) {
+                toast.error(
+                  "Necesitás un contrato emitido o firmado para registrar pagos",
+                );
+                return;
+              }
+              setPagoOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] font-medium rounded-[7px] border border-[var(--color-b1)] text-[var(--color-t2)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] hover:bg-[var(--color-brand-muted)] transition-all"
+          >
+            <Plus size={13} />
+            Registrar pago
+          </button>
+        </div>
       </div>
       <p className="text-[12px] text-[var(--color-t3)] mb-4 leading-relaxed">
         Estado de cuenta de {clienteNombre}. El cliente lo ve en su vista
