@@ -17,6 +17,6 @@ export const config = {
      * - /_next/image
      * - favicon.ico, og.png
      */
-    "/((?!r/|c/|api/public/|_next/static|_next/image|favicon.ico|og.png).*)",
+    "/((?!r/|c/|api/public/|api/dolar|_next/static|_next/image|favicon.ico|og.png).*)",
   ],
 };

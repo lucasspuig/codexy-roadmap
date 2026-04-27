@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { loadPublicRoadmap } from "@/app/api/public/[token]/route";
 import { loadPublicSaldos } from "@/app/api/public/[token]/saldos/route";
+import { fetchCotizacionDolar } from "@/lib/cambio";
 
 import { EstadoCuentaCard } from "./EstadoCuentaCard";
 import { Timeline } from "./Timeline";
@@ -65,9 +66,10 @@ export default async function PublicRoadmapPage({ params }: PageProps) {
 
   if (!TOKEN_RE.test(token)) notFound();
 
-  const [data, saldos] = await Promise.all([
+  const [data, saldos, cotizacion] = await Promise.all([
     loadPublicRoadmap(token),
     loadPublicSaldos(token).catch(() => null),
+    fetchCotizacionDolar().catch(() => null),
   ]);
   if (!data) notFound();
 
@@ -109,7 +111,12 @@ export default async function PublicRoadmapPage({ params }: PageProps) {
         token={token}
         initial={data}
         saldosBlock={
-          saldos ? <EstadoCuentaCard saldos={saldos} /> : null
+          saldos ? (
+            <EstadoCuentaCard
+              saldos={saldos}
+              fallbackTC={cotizacion?.promedio ?? null}
+            />
+          ) : null
         }
       />
     </div>

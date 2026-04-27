@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "node:crypto";
+import { createClient as createAnonSupabase } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import type { Profile } from "@/types/database";
 import type {
   AgencySettings,
@@ -241,76 +241,55 @@ export async function cancelarContrato(input: {
 // Firma del cliente (vía página pública con token)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ALLOWED_FIRMA_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+/**
+ * Firma del cliente. NO usa service_role: llama a un RPC SECURITY DEFINER
+ * (sign_contrato_publico) que valida el token, guarda la firma como data
+ * URL inline, y marca el contrato como firmado_completo.
+ *
+ * Recibe la firma como string (data URL data:image/png;base64,...) en lugar
+ * de un File para evitar dependencia con el storage (que requiere admin
+ * para uploads de usuarios anon).
+ */
+export async function firmarContratoCliente(input: {
+  token: string;
+  firma_data_url: string;
+  ip?: string | null;
+  ua?: string | null;
+}): Promise<ActionResult<{ estado: ContratoEstado }>> {
+  const token = String(input.token || "").trim();
+  const firma = String(input.firma_data_url || "");
 
-export async function firmarContratoCliente(formData: FormData): Promise<
-  ActionResult<{ estado: ContratoEstado }>
-> {
-  const token = String(formData.get("token") ?? "");
-  const file = formData.get("firma");
-  const ip = String(formData.get("ip") ?? "");
-  const ua = String(formData.get("ua") ?? "");
-
-  if (!token || token.length < 10) return { ok: false, error: "Token inválido" };
-  if (!(file instanceof File)) return { ok: false, error: "Firma no recibida" };
-  if (!ALLOWED_FIRMA_MIME.has(file.type)) {
-    return { ok: false, error: "Formato de firma inválido (PNG/JPG/WEBP)" };
+  if (!token || token.length < 32)
+    return { ok: false, error: "Token inválido" };
+  if (!firma.startsWith("data:image/")) {
+    return { ok: false, error: "Firma inválida" };
   }
-  if (file.size > 1_048_576) return { ok: false, error: "Firma supera 1 MB" };
-
-  const admin = createAdminClient();
-
-  // Resolver el contrato por token
-  const { data: c0 } = await admin
-    .from("contratos")
-    .select("id, estado")
-    .eq("token_publico", token)
-    .maybeSingle();
-  const c = c0 as { id: string; estado: ContratoEstado } | null;
-  if (!c) return { ok: false, error: "Contrato no encontrado" };
-  if (c.estado === "firmado_completo") {
-    return { ok: false, error: "Este contrato ya fue firmado" };
-  }
-  if (c.estado !== "enviado" && c.estado !== "firmado_cliente") {
-    return { ok: false, error: "El contrato no está disponible para firma" };
+  if (firma.length > 250_000) {
+    return { ok: false, error: "Firma demasiado grande" };
   }
 
-  // Subir la imagen a storage
-  const ext =
-    file.type === "image/png"
-      ? "png"
-      : file.type === "image/webp"
-        ? "webp"
-        : "jpg";
-  const path = `cliente/${c.id}-${Date.now()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await admin.storage
-    .from("contratos-firmas")
-    .upload(path, buffer, {
-      contentType: file.type,
-      cacheControl: "3600",
-      upsert: false,
-    });
-  if (upErr) return { ok: false, error: upErr.message };
+  // Cliente anon (sin cookies). El RPC es SECURITY DEFINER y valida el
+  // token internamente — no necesita auth de usuario.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    return { ok: false, error: "Configuración del servidor incompleta" };
+  }
+  const anon = createAnonSupabase(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
-  const { data: pub } = admin.storage
-    .from("contratos-firmas")
-    .getPublicUrl(path);
+  const { data, error } = await anon.rpc("sign_contrato_publico" as never, {
+    p_token: token,
+    p_firma_data_url: firma,
+    p_ip: input.ip ?? null,
+    p_ua: input.ua ?? null,
+  } as never);
 
-  const now = new Date().toISOString();
-  const { error: updErr } = await admin
-    .from("contratos")
-    .update({
-      estado: "firmado_completo",
-      firma_cliente_url: pub.publicUrl,
-      fecha_firma_cliente: now,
-      fecha_firmado_completo: now,
-      firma_cliente_ip: ip || null,
-      firma_cliente_ua: ua || null,
-    })
-    .eq("id", c.id);
-  if (updErr) return { ok: false, error: updErr.message };
-
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  void data;
   return { ok: true, data: { estado: "firmado_completo" } };
 }
 

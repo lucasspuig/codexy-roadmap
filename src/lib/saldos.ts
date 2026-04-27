@@ -70,15 +70,22 @@ export function facturadoDeContrato(
  * Suma los pagos asociados a un contrato, expresados en la moneda del
  * contrato. Si un pago se hizo en otra moneda (ej. ARS contra contrato USD),
  * se convierte usando el tipo_cambio_aplicado capturado al momento del pago.
+ *
+ * Si un pago en moneda distinta no tiene TC capturado, se usa fallbackTC
+ * (típicamente la cotización actual del BNA) para no romper el total.
  */
 export function pagadoDeContrato(
   contratoId: string,
   monedaContrato: string,
   pagos: Pago[],
+  fallbackTC?: number | null,
 ): number {
   return pagos
     .filter((p) => p.contrato_id === contratoId)
-    .reduce((acc, p) => acc + pagoEnMonedaContrato(p, monedaContrato), 0);
+    .reduce(
+      (acc, p) => acc + pagoEnMonedaContrato(p, monedaContrato, fallbackTC),
+      0,
+    );
 }
 
 /**
@@ -88,9 +95,15 @@ export function saldoDeContrato(
   contrato: Contrato,
   pagos: Pago[],
   hasta: Date = new Date(),
+  fallbackTC?: number | null,
 ): ContratoSaldo {
   const facturado = facturadoDeContrato(contrato, hasta);
-  const pagado = pagadoDeContrato(contrato.id, contrato.moneda, pagos);
+  const pagado = pagadoDeContrato(
+    contrato.id,
+    contrato.moneda,
+    pagos,
+    fallbackTC,
+  );
   return {
     contrato_id: contrato.id,
     numero: contrato.numero,
@@ -114,11 +127,14 @@ export function saldoDeCliente(
   contratos: Contrato[],
   pagos: Pago[],
   hasta: Date = new Date(),
+  fallbackTC?: number | null,
 ): SaldoCliente {
   const contratosVivos = contratos.filter(
     (c) => c.estado !== "borrador" && c.estado !== "cancelado",
   );
-  const desgloses = contratosVivos.map((c) => saldoDeContrato(c, pagos, hasta));
+  const desgloses = contratosVivos.map((c) =>
+    saldoDeContrato(c, pagos, hasta, fallbackTC),
+  );
   const moneda = contratosVivos[0]?.moneda ?? "USD";
   const facturado = desgloses.reduce((a, b) => a + b.monto_total, 0);
   const pagado = desgloses.reduce((a, b) => a + b.total_pagado, 0);

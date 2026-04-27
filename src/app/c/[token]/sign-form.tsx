@@ -139,21 +139,20 @@ export function ContratoSignClient({
     if (!canvas) return;
     setSubmitting(true);
     try {
-      const blob: Blob | null = await new Promise((resolve) =>
-        canvas.toBlob((b) => resolve(b), "image/png"),
-      );
-      if (!blob) {
+      // Generamos un data URL en lugar de subir un archivo: el RPC del
+      // server (sign_contrato_publico) guarda la firma inline en el
+      // contrato. Esto evita la dependencia con storage/service_role.
+      const dataUrl = canvas.toDataURL("image/png");
+      if (!dataUrl || !dataUrl.startsWith("data:image/")) {
         toast.error("No se pudo generar la imagen de la firma");
         setSubmitting(false);
         return;
       }
-      const file = new File([blob], "firma.png", { type: "image/png" });
-      const fd = new FormData();
-      fd.append("token", token);
-      fd.append("firma", file);
-      fd.append("ua", typeof navigator !== "undefined" ? navigator.userAgent : "");
-      // ip: no la conocemos del lado del cliente; el server toma la del request si la necesita
-      const res = await firmarContratoCliente(fd);
+      const res = await firmarContratoCliente({
+        token,
+        firma_data_url: dataUrl,
+        ua: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      });
       if (!res.ok) {
         toast.error(res.error);
         setSubmitting(false);

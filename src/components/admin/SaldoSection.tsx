@@ -26,6 +26,12 @@ import {
   updatePago,
   uploadComprobante,
 } from "@/app/(admin)/pagos/actions";
+import {
+  formatTipoCambio,
+  pagoEnMonedaContrato,
+  pagoNecesitaTipoCambio,
+  type CotizacionDolar,
+} from "@/lib/cambio";
 import { formatMonto, saldoDeCliente } from "@/lib/saldos";
 import { cn, formatDate } from "@/lib/utils";
 import {
@@ -49,6 +55,7 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [cotizacion, setCotizacion] = useState<CotizacionDolar | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,6 +77,21 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
     };
   }, [clienteId]);
 
+  // Fetch cotización del BNA al montar — la usamos como fallback para
+  // convertir pagos en otra moneda que no tengan tipo de cambio capturado.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/dolar", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setCotizacion(data as CotizacionDolar);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function refresh() {
     const res = await listFinanzasByCliente({ cliente_id: clienteId });
     if (res.ok) {
@@ -79,10 +101,22 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
     router.refresh();
   }
 
+  const fallbackTC = cotizacion?.promedio ?? null;
+
   const saldo = useMemo(() => {
     if (!contratos || !pagos) return null;
-    return saldoDeCliente(clienteId, contratos, pagos);
-  }, [clienteId, contratos, pagos]);
+    return saldoDeCliente(clienteId, contratos, pagos, undefined, fallbackTC);
+  }, [clienteId, contratos, pagos, fallbackTC]);
+
+  // Cuántos pagos sin TC hay (para mostrar warning agregado)
+  const pagosSinTC = useMemo(() => {
+    if (!contratos || !pagos) return 0;
+    return pagos.filter((p) => {
+      const c = contratos.find((x) => x.id === p.contrato_id);
+      if (!c) return false;
+      return pagoNecesitaTipoCambio(p, c.moneda);
+    }).length;
+  }, [contratos, pagos]);
 
   // Solo permite registrar pagos sobre contratos vivos
   const contratosFacturables = useMemo(
@@ -177,6 +211,17 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
         pública (los pagos ocultos solo se ven acá).
       </p>
 
+      {pagosSinTC > 0 && cotizacion ? (
+        <div className="mb-4 rounded-[10px] border border-[rgba(251,191,36,0.30)] bg-[color-mix(in_srgb,#fbbf24_8%,transparent)] px-3.5 py-2.5 text-[11.5px] text-[var(--color-warn)] leading-relaxed">
+          <strong>{pagosSinTC}</strong>{" "}
+          {pagosSinTC === 1 ? "pago" : "pagos"} en moneda distinta al contrato
+          sin tipo de cambio cargado. Estimo el equivalente con el dólar oficial
+          actual ({formatTipoCambio(cotizacion.promedio)}) — para que quede
+          asentado en el contrato editá cada pago y poné el TC del día en que
+          se cobró.
+        </div>
+      ) : null}
+
       {loading ? (
         <div className="space-y-2">
           <div className="skeleton h-[88px] rounded-[10px]" />
@@ -215,6 +260,7 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
                 pendiente={cs.pendiente}
                 moneda={cs.moneda}
                 pagos={cs.pagos}
+                fallbackTC={fallbackTC}
                 onEditPago={(id) => setEditingId(id)}
                 onDeletePago={(id) => setConfirmDelete(id)}
                 onToggleVisible={handleToggleVisible}
@@ -333,6 +379,7 @@ function ContratoSaldoRow({
   pendiente,
   moneda,
   pagos,
+  fallbackTC,
   onEditPago,
   onDeletePago,
   onToggleVisible,
@@ -344,6 +391,7 @@ function ContratoSaldoRow({
   pendiente: number;
   moneda: string;
   pagos: Pago[];
+  fallbackTC: number | null;
   onEditPago: (id: string) => void;
   onDeletePago: (id: string) => void;
   onToggleVisible: (p: Pago) => void;
@@ -400,7 +448,13 @@ function ContratoSaldoRow({
         </div>
       ) : (
         <ul className="divide-y divide-[var(--color-b1)]">
-          {pagos.map((p) => (
+          {pagos.map((p) => {
+            const distintaMoneda = p.moneda !== moneda;
+            const necesitaTC = pagoNecesitaTipoCambio(p, moneda);
+            const equivalente = distintaMoneda
+              ? pagoEnMonedaContrato(p, moneda, fallbackTC)
+              : 0;
+            return (
             <li key={p.id} className="px-3.5 py-2 flex items-center gap-3 flex-wrap">
               <ArrowDownCircle
                 size={13}
@@ -415,6 +469,25 @@ function ContratoSaldoRow({
               >
                 {formatMonto(Number(p.monto), p.moneda)}
               </span>
+              {distintaMoneda && equivalente > 0 ? (
+                <span
+                  className={cn(
+                    "text-[10.5px] tabular-nums px-1.5 py-0.5 rounded",
+                    necesitaTC
+                      ? "text-[var(--color-warn)] bg-[color-mix(in_srgb,#fbbf24_8%,transparent)] border border-[rgba(251,191,36,0.30)]"
+                      : "text-[var(--color-t3)] bg-[var(--color-s3)]",
+                  )}
+                  style={{ fontFamily: "var(--ff-mono)" }}
+                  title={
+                    necesitaTC
+                      ? "Sin tipo de cambio cargado — uso el dólar oficial actual como aproximación. Editá el pago para fijar el TC del día del cobro."
+                      : `TC aplicado: ${formatTipoCambio(p.tipo_cambio_aplicado)}`
+                  }
+                >
+                  ≈ {formatMonto(equivalente, moneda)}
+                  {necesitaTC ? " ⚠" : ""}
+                </span>
+              ) : null}
               {p.metodo ? (
                 <span className="text-[10.5px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-[var(--color-b1)] text-[var(--color-t3)]">
                   {PAGO_METODO_LABELS[p.metodo]}
@@ -472,7 +545,8 @@ function ContratoSaldoRow({
                 </button>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>
@@ -504,6 +578,8 @@ function PagoFormDialog({
   const [notas, setNotas] = useState<string>("");
   const [visibleCliente, setVisibleCliente] = useState<boolean>(true);
   const [comprobante, setComprobante] = useState<string | null>(null);
+  const [tipoCambio, setTipoCambio] = useState<string>("");
+  const [cotizacionDialog, setCotizacionDialog] = useState<CotizacionDolar | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -520,6 +596,11 @@ function PagoFormDialog({
       setNotas(editing.notas ?? "");
       setVisibleCliente(editing.visible_cliente);
       setComprobante(editing.comprobante_url);
+      setTipoCambio(
+        editing.tipo_cambio_aplicado !== null
+          ? String(editing.tipo_cambio_aplicado)
+          : "",
+      );
     } else {
       const today = new Date().toISOString().slice(0, 10);
       setContratoId(contratos[0]?.id ?? "");
@@ -531,11 +612,50 @@ function PagoFormDialog({
       setNotas("");
       setVisibleCliente(true);
       setComprobante(null);
+      setTipoCambio("");
     }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, editing, contratos]);
 
+  // Fetch cotización del BNA al abrir el form (para pre-llenar TC si aplica)
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch("/api/dolar", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setCotizacionDialog(data as CotizacionDolar);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   const selectedContrato = contratos.find((c) => c.id === contratoId);
+  const monedaContrato = selectedContrato?.moneda ?? "USD";
+  const requiereTC = moneda !== monedaContrato;
+  const montoNum = Number.parseFloat(monto);
+  const tcNum = Number.parseFloat(tipoCambio);
+  const equivalente =
+    requiereTC && Number.isFinite(montoNum) && Number.isFinite(tcNum) && tcNum > 0
+      ? moneda === "ARS" && monedaContrato === "USD"
+        ? montoNum / tcNum
+        : moneda === "USD" && monedaContrato === "ARS"
+          ? montoNum * tcNum
+          : null
+      : null;
+
+  // Auto-prefill TC con cotización del BNA cuando se requiere y no hay valor
+  useEffect(() => {
+    if (!open) return;
+    if (!requiereTC) return;
+    if (tipoCambio !== "") return;
+    if (!cotizacionDialog) return;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setTipoCambio(String(cotizacionDialog.promedio));
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [open, requiereTC, tipoCambio, cotizacionDialog]);
 
   async function handleFile(file: File) {
     if (!contratoId) {
@@ -570,6 +690,15 @@ function PagoFormDialog({
       toast.error("Falta la fecha de pago");
       return;
     }
+    if (requiereTC) {
+      const tc = Number.parseFloat(tipoCambio);
+      if (!Number.isFinite(tc) || tc <= 0) {
+        toast.error(
+          "Cargá el tipo de cambio del día — el contrato está en moneda distinta",
+        );
+        return;
+      }
+    }
     setSubmitting(true);
     const payload = {
       contrato_id: contratoId,
@@ -581,6 +710,9 @@ function PagoFormDialog({
       comprobante_url: comprobante,
       notas: notas.trim() || null,
       visible_cliente: visibleCliente,
+      tipo_cambio_aplicado: requiereTC
+        ? Number.parseFloat(tipoCambio)
+        : null,
     };
     const res = isEdit
       ? await updatePago({ id: editing!.id, patch: payload })
@@ -699,6 +831,73 @@ function PagoFormDialog({
             </select>
           </div>
         </div>
+
+        {requiereTC ? (
+          <div className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s2)]/50 p-3.5">
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-[11px] font-semibold text-[var(--color-t1)]">
+                Tipo de cambio
+              </span>
+              <span className="text-[10.5px] text-[var(--color-t3)]">
+                Contrato en {monedaContrato}, pago en {moneda}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+              <div>
+                <Label htmlFor="ps-tc" className="text-[10.5px]">
+                  1 USD = ARS
+                </Label>
+                <Input
+                  id="ps-tc"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={tipoCambio}
+                  onChange={(e) => setTipoCambio(e.target.value)}
+                  placeholder={
+                    cotizacionDialog
+                      ? String(cotizacionDialog.promedio)
+                      : "1350"
+                  }
+                />
+                {cotizacionDialog ? (
+                  <p className="text-[10.5px] text-[var(--color-t3)] mt-1.5 leading-relaxed">
+                    BNA al{" "}
+                    {new Date(
+                      cotizacionDialog.fecha_actualizacion,
+                    ).toLocaleDateString("es-AR")}
+                    : compra ARS{" "}
+                    {cotizacionDialog.compra.toFixed(2)} · venta ARS{" "}
+                    {cotizacionDialog.venta.toFixed(2)}.{" "}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTipoCambio(String(cotizacionDialog.promedio))
+                      }
+                      className="text-[var(--color-info)] hover:underline"
+                    >
+                      Usar promedio
+                    </button>
+                  </p>
+                ) : null}
+              </div>
+              {equivalente !== null ? (
+                <div className="text-right pb-2">
+                  <div className="text-[10.5px] text-[var(--color-t3)] uppercase tracking-wider">
+                    Equivale a
+                  </div>
+                  <div
+                    className="text-[15px] font-semibold text-[var(--color-brand)]"
+                    style={{ fontFamily: "var(--ff-mono)" }}
+                  >
+                    {formatMonto(equivalente, monedaContrato)}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <div>
           <Label htmlFor="ps-etapa">Etapa / concepto (opcional)</Label>
           <Input

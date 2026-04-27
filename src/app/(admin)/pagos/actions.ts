@@ -61,6 +61,9 @@ export interface CreatePagoInput {
   comprobante_url?: string | null;
   notas?: string | null;
   visible_cliente?: boolean;
+  /** Tipo de cambio aplicado al momento del pago (1 USD = X ARS).
+   *  Solo se usa cuando moneda del pago != moneda del contrato. */
+  tipo_cambio_aplicado?: number | null;
 }
 
 export async function createPago(
@@ -100,6 +103,12 @@ export async function createPago(
       comprobante_url: input.comprobante_url ?? null,
       notas: input.notas ?? null,
       visible_cliente: input.visible_cliente ?? true,
+      tipo_cambio_aplicado:
+        input.tipo_cambio_aplicado &&
+        Number.isFinite(input.tipo_cambio_aplicado) &&
+        input.tipo_cambio_aplicado > 0
+          ? input.tipo_cambio_aplicado
+          : null,
       created_by: guard.userId,
     })
     .select("id")

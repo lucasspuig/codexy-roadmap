@@ -94,28 +94,47 @@ export function convertirMonto(
 
 /**
  * Devuelve el monto del pago expresado en la moneda del contrato.
- * Si el pago está en la misma moneda → no convierte.
- * Si está en distinta y tiene tipo_cambio_aplicado → convierte usando ese.
- * Si está en distinta y NO tiene tipo_cambio_aplicado → asume 1:1 (caso degradado).
+ *
+ * Prioridad del tipo de cambio:
+ *   1. Si las monedas coinciden → no convierte.
+ *   2. Si el pago tiene tipo_cambio_aplicado (capturado al momento del pago)
+ *      → usa ese.
+ *   3. Si recibimos un fallbackTC (típicamente la cotización actual del BNA)
+ *      → lo usamos como aproximación.
+ *   4. Si no hay nada → devuelve 0 (no sumamos un pago sin convertir, mejor
+ *      mostrar un total parcial que un total mentiroso).
  */
 export function pagoEnMonedaContrato(
   pago: Pick<Pago, "monto" | "moneda" | "tipo_cambio_aplicado">,
   monedaContrato: string,
+  fallbackTC?: number | null,
 ): number {
   if (pago.moneda === monedaContrato) return Number(pago.monto || 0);
-  const tc = pago.tipo_cambio_aplicado ?? 0;
-  if (tc <= 0) {
-    // Sin tipo de cambio capturado, no podemos convertir con confianza.
-    // Devolvemos el monto crudo como degradación ordenada (mostrará una
-    // inconsistencia en saldo, mejor que ocultar el pago).
-    return Number(pago.monto || 0);
-  }
+  const tc =
+    pago.tipo_cambio_aplicado && pago.tipo_cambio_aplicado > 0
+      ? pago.tipo_cambio_aplicado
+      : fallbackTC && fallbackTC > 0
+        ? fallbackTC
+        : 0;
+  if (tc <= 0) return 0;
   return convertirMonto(
     Number(pago.monto || 0),
     pago.moneda,
     monedaContrato,
     tc,
   );
+}
+
+/**
+ * True si el pago necesita tipo_cambio_aplicado pero no lo tiene cargado.
+ * Lo usamos para pintar un warning en la UI.
+ */
+export function pagoNecesitaTipoCambio(
+  pago: Pick<Pago, "moneda" | "tipo_cambio_aplicado">,
+  monedaContrato: string,
+): boolean {
+  if (pago.moneda === monedaContrato) return false;
+  return !pago.tipo_cambio_aplicado || pago.tipo_cambio_aplicado <= 0;
 }
 
 function round4(n: number): number {

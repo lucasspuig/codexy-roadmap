@@ -12,6 +12,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { pagoEnMonedaContrato } from "@/lib/cambio";
 import { facturadoDeContrato } from "@/lib/saldos";
 import { TIPO_LABELS } from "@/types/contratos";
 import {
@@ -21,6 +22,9 @@ import {
 
 interface Props {
   saldos: PublicSaldosPayload;
+  /** Tipo de cambio del BNA al momento del render. Se usa como fallback
+   *  cuando un pago no tiene tipo_cambio_aplicado capturado. */
+  fallbackTC: number | null;
 }
 
 const NUMBER_FMT = new Intl.NumberFormat("es-AR", {
@@ -41,21 +45,30 @@ function fmtDate(iso: string | null): string {
   });
 }
 
-export function EstadoCuentaCard({ saldos }: Props) {
-  // Recalcular del lado del cliente para acumular mensualidades vencidas
-  // (mensual + unico_mas_mensual + implementacion con mantenimiento opcional).
-  // El RPC público devuelve el snapshot crudo de monto_total.
+export function EstadoCuentaCard({ saldos, fallbackTC }: Props) {
+  // Recalcular del lado del server (este es Server Component) para:
+  //  - acumular mensualidades vencidas
+  //  - convertir pagos a la moneda del contrato usando el tipo_cambio_aplicado
+  //    capturado al momento del pago, o el fallback (cotización BNA actual)
+  //    si el pago aún no tiene TC cargado.
   const now = new Date();
+  const moneda = saldos.moneda || saldos.contratos[0]?.moneda || "USD";
+
   const totalFacturado = saldos.contratos.reduce(
     (acc, c) => acc + facturadoDeContrato(c, now),
     0,
   );
-  const totalPagado = saldos.pagos.reduce(
-    (acc, p) => acc + Number(p.monto || 0),
-    0,
-  );
+
+  // Cada pago se expresa en la moneda del CONTRATO al que pertenece.
+  // Para el agregado público, todos los contratos asumimos misma moneda
+  // (cliente único). Convertimos pago a esa moneda.
+  const totalPagado = saldos.pagos.reduce((acc, p) => {
+    const c = saldos.contratos.find((x) => x.id === p.contrato_id);
+    const monedaCtr = c?.moneda ?? moneda;
+    return acc + pagoEnMonedaContrato(p, monedaCtr, fallbackTC);
+  }, 0);
+
   const pendiente = Math.max(0, totalFacturado - totalPagado);
-  const moneda = saldos.moneda || saldos.contratos[0]?.moneda || "USD";
   const alDia = pendiente <= 0.005;
   const tieneAlgo =
     saldos.contratos.length > 0 ||
@@ -172,24 +185,41 @@ export function EstadoCuentaCard({ saldos }: Props) {
             <ReceiptText size={12} aria-hidden /> Pagos registrados
           </h3>
           <ul className="public-saldos-pagos">
-            {saldos.pagos.slice(0, 8).map((p) => (
-              <li key={p.id} className="public-saldos-pago-row">
-                <span className="public-saldos-pago-fecha">
-                  {fmtDate(p.fecha_pago)}
-                </span>
-                <span className="public-saldos-pago-monto">
-                  {fmt(Number(p.monto), p.moneda)}
-                </span>
-                {p.metodo ? (
-                  <span className="public-saldos-pago-metodo">
-                    {PAGO_METODO_LABELS[p.metodo]}
+            {saldos.pagos.slice(0, 8).map((p) => {
+              const c = saldos.contratos.find((x) => x.id === p.contrato_id);
+              const monedaCtr = c?.moneda ?? moneda;
+              const distinta = p.moneda !== monedaCtr;
+              const equivalente = distinta
+                ? pagoEnMonedaContrato(p, monedaCtr, fallbackTC)
+                : 0;
+              return (
+                <li key={p.id} className="public-saldos-pago-row">
+                  <span className="public-saldos-pago-fecha">
+                    {fmtDate(p.fecha_pago)}
                   </span>
-                ) : null}
-                {p.etapa ? (
-                  <span className="public-saldos-pago-etapa">{p.etapa}</span>
-                ) : null}
-              </li>
-            ))}
+                  <span className="public-saldos-pago-monto">
+                    {fmt(Number(p.monto), p.moneda)}
+                  </span>
+                  {distinta && equivalente > 0 ? (
+                    <span
+                      className="public-saldos-pago-metodo"
+                      style={{ opacity: 0.85 }}
+                      title="Equivalente al tipo de cambio del momento"
+                    >
+                      ≈ {fmt(equivalente, monedaCtr)}
+                    </span>
+                  ) : null}
+                  {p.metodo ? (
+                    <span className="public-saldos-pago-metodo">
+                      {PAGO_METODO_LABELS[p.metodo]}
+                    </span>
+                  ) : null}
+                  {p.etapa ? (
+                    <span className="public-saldos-pago-etapa">{p.etapa}</span>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
           {saldos.pagos.length > 8 ? (
             <p className="public-saldos-mas">
