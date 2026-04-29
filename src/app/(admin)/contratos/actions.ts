@@ -241,6 +241,8 @@ export async function cancelarContrato(input: {
 // Firma del cliente (vía página pública con token)
 // ─────────────────────────────────────────────────────────────────────────────
 
+const ALLOWED_FIRMA_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+
 /**
  * Firma del cliente. NO usa service_role: llama a un RPC SECURITY DEFINER
  * (sign_contrato_publico) que valida el token, guarda la firma como data
