@@ -47,6 +47,8 @@ export interface Contrato {
   mantenimiento_mensual: number | null;
   mora_porcentaje: number | null;
   dias_gracia: number | null;
+  /** Día del mes en que vence la cuota (1-28). Default 9. */
+  dia_cobro: number;
   /** Periodicidad de la cuota de mantenimiento. Default 'mensual'. */
   plan_periodicidad: "mensual" | "trimestral";
   /** % de descuento aplicado cuando plan_periodicidad === 'trimestral'. */

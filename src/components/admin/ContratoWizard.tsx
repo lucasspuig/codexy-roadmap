@@ -70,6 +70,8 @@ interface WizardState {
   /** Pre-paga trimestral con descuento sobre la cuota mensual. */
   plan_trimestral: boolean;
   plan_descuento_pct: string;
+  /** Día del mes (1-28) en que vence la cuota. Default 9. */
+  dia_cobro: string;
 }
 
 const STEPS = [
@@ -146,6 +148,7 @@ function initialState(
     incluir_mantenimiento: tieneMantenimiento(tipo, modalidad),
     plan_trimestral: false,
     plan_descuento_pct: "10",
+    dia_cobro: "9",
   };
 }
 
@@ -356,6 +359,9 @@ export function ContratoWizard({
         persistMantenimiento && state.plan_trimestral
           ? Number.parseFloat(state.plan_descuento_pct) || 0
           : null,
+      dia_cobro: persistMantenimiento
+        ? Number.parseInt(state.dia_cobro, 10) || 9
+        : 9,
     });
     setSubmitting(false);
     if (!res.ok) {
@@ -907,6 +913,26 @@ function Step3({
               placeholder="5"
             />
           </div>
+          </div>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3 items-end">
+            <div className="text-[11.5px] text-[var(--color-t3)] leading-relaxed">
+              <strong className="text-[var(--color-t2)]">Día del mes en que se cobra</strong> (1-28).
+              Las fechas del ciclo se calculan así: recordatorio 1 = día − 6,
+              recordatorio 2 = día − 3, vencimiento = día, escalación = día + 1.
+            </div>
+            <div>
+              <Label htmlFor="cw-dia-cobro">Día de cobro</Label>
+              <Input
+                id="cw-dia-cobro"
+                type="number"
+                min="1"
+                max="28"
+                step="1"
+                value={state.dia_cobro}
+                onChange={(e) => onChange({ dia_cobro: e.target.value })}
+                placeholder="9"
+              />
+            </div>
           </div>
 
           {/* Plan trimestral con descuento */}

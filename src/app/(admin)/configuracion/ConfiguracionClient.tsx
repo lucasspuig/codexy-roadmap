@@ -13,7 +13,10 @@ import {
   Check,
   ImageIcon,
   Loader2,
+  MessageSquareText,
+  Phone,
   Save,
+  Send,
   Settings as SettingsIcon,
   Trash2,
   Upload,
@@ -27,7 +30,10 @@ import {
   updateAgencySettings,
   uploadAgencySignature,
 } from "@/app/(admin)/contratos/actions";
+import { enviarMensajeTest } from "@/app/(admin)/configuracion/actions";
+import { EditableTemplate } from "@/components/admin/EditableTemplate";
 import type { AgencySettings } from "@/types/contratos";
+import type { MensajeTemplate } from "@/types/cobros";
 import { cn } from "@/lib/utils";
 
 const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp"];
@@ -35,9 +41,17 @@ const MAX_BYTES = 1 * 1024 * 1024;
 
 export interface ConfiguracionClientProps {
   initial: AgencySettings | null;
+  templates: MensajeTemplate[];
+  numeroEscalacion: string | null;
+  evolutionConfigurada: boolean;
 }
 
-export function ConfiguracionClient({ initial }: ConfiguracionClientProps) {
+export function ConfiguracionClient({
+  initial,
+  templates,
+  numeroEscalacion,
+  evolutionConfigurada,
+}: ConfiguracionClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -56,6 +70,18 @@ export function ConfiguracionClient({ initial }: ConfiguracionClientProps) {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  async function handleTestMessage() {
+    setTesting(true);
+    const res = await enviarMensajeTest();
+    setTesting(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Mensaje de prueba enviado. Revisá tu WhatsApp.");
+  }
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ALLOWED_MIME.includes(file.type)) {
@@ -141,9 +167,75 @@ export function ConfiguracionClient({ initial }: ConfiguracionClientProps) {
           </h1>
         </div>
         <p className="text-[13px] text-[var(--color-t3)] mt-1">
-          Datos del prestador y firma digital de Codexy. Aplican a todos los contratos emitidos.
+          Datos del prestador, firma digital y templates de mensajes. Aplican a
+          todos los contratos y cobros de Codexy.
         </p>
       </div>
+
+      {/* ── Card: Diagnóstico WhatsApp ──────────────────────────────── */}
+      <section className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-5 mb-5">
+        <div className="flex items-center gap-2 mb-1">
+          <MessageSquareText size={14} className="text-[var(--color-info)]" />
+          <h2 className="text-[14px] font-semibold text-[var(--color-t1)]">
+            Diagnóstico WhatsApp
+          </h2>
+          <span
+            className={cn(
+              "ml-auto inline-flex items-center gap-1 text-[10.5px] uppercase tracking-wider px-2 py-0.5 rounded-full border font-medium",
+              evolutionConfigurada
+                ? "border-[color-mix(in_srgb,var(--color-brand)_30%,transparent)] text-[var(--color-brand)] bg-[var(--color-brand-muted)]"
+                : "border-[rgba(248,113,113,0.30)] text-[var(--color-danger)] bg-[var(--color-danger-muted)]",
+            )}
+          >
+            <Check size={10} />
+            {evolutionConfigurada
+              ? "Evolution API: configurada"
+              : "Evolution API: faltan env vars"}
+          </span>
+        </div>
+        <p className="text-[12px] text-[var(--color-t3)] mb-4 leading-relaxed">
+          Probá la integración mandándote un mensaje a vos mismo al número
+          personal definido como destino de escalaciones.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+          <div>
+            <Label htmlFor="cfg-num-esc">
+              <span className="inline-flex items-center gap-1">
+                <Phone size={11} />
+                Número de escalación / WhatsApp del admin
+              </span>
+            </Label>
+            <Input
+              id="cfg-num-esc"
+              value={numeroEscalacion ?? ""}
+              readOnly
+              placeholder="(no configurado)"
+            />
+            <p className="text-[11px] text-[var(--color-t3)] mt-1 leading-relaxed">
+              Editable desde la pestaña <strong>Datos de pago</strong>. Sin este
+              número no se pueden mandar pruebas ni escalaciones.
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={handleTestMessage}
+            loading={testing}
+            disabled={!evolutionConfigurada || !numeroEscalacion}
+          >
+            <Send size={13} />
+            Mandar mensaje de prueba
+          </Button>
+        </div>
+
+        {!evolutionConfigurada ? (
+          <div className="mt-3 rounded-[8px] border border-[rgba(251,191,36,0.30)] bg-[color-mix(in_srgb,#fbbf24_8%,transparent)] px-3 py-2 text-[11.5px] text-[var(--color-warn)] leading-relaxed">
+            Definí <code>EVOLUTION_API_URL</code>,{" "}
+            <code>EVOLUTION_API_KEY</code> y <code>EVOLUTION_INSTANCE</code> en
+            las variables de entorno del servidor para habilitar el envío.
+          </div>
+        ) : null}
+      </section>
 
       {/* ── Card: Firma de Codexy ────────────────────────────────────── */}
       <section className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] p-5 mb-5">
@@ -306,6 +398,31 @@ export function ConfiguracionClient({ initial }: ConfiguracionClientProps) {
           </Button>
         </div>
       </section>
+
+      {/* ── Card: Templates de mensajes ───────────────────────────── */}
+      {templates.length > 0 ? (
+        <section className="mb-5">
+          <div className="flex items-center gap-2 mb-1">
+            <MessageSquareText size={14} className="text-[var(--color-info)]" />
+            <h2 className="text-[14px] font-semibold text-[var(--color-t1)]">
+              Templates de mensajes
+            </h2>
+            <span className="text-[11px] text-[var(--color-t3)]">
+              ({templates.length})
+            </span>
+          </div>
+          <p className="text-[12px] text-[var(--color-t3)] mb-4 leading-relaxed">
+            Cuerpo de los WhatsApp automáticos. La vista previa se actualiza en
+            vivo con datos de ejemplo. Los cambios afectan a todos los envíos
+            posteriores.
+          </p>
+          <div className="space-y-3">
+            {templates.map((tpl) => (
+              <EditableTemplate key={tpl.id} template={tpl} />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* ── Status final ─────────────────────────────────────────────── */}
       <section

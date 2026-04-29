@@ -43,6 +43,16 @@ function tokenHex(): string {
   return randomBytes(32).toString("hex");
 }
 
+/** Acota dia_cobro al rango [1, 28] (constraint en DB). 9 si no hay valor válido. */
+function clampDiaCobro(v: number | string | null | undefined): number {
+  const n =
+    typeof v === "string" ? Number.parseInt(v, 10) : typeof v === "number" ? v : NaN;
+  if (!Number.isFinite(n)) return 9;
+  if (n < 1) return 1;
+  if (n > 28) return 28;
+  return Math.trunc(n);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CRUD de contratos
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,6 +78,8 @@ export interface CreateContratoInput {
   plan_periodicidad?: "mensual" | "trimestral";
   /** % de descuento si plan_periodicidad === 'trimestral'. */
   plan_descuento_pct?: number | null;
+  /** Día del mes (1-28) en que vence la cuota. Default 9. */
+  dia_cobro?: number | null;
 }
 
 export async function createContrato(
@@ -108,6 +120,7 @@ export async function createContrato(
       input.plan_periodicidad === "trimestral"
         ? input.plan_descuento_pct ?? null
         : null,
+    dia_cobro: clampDiaCobro(input.dia_cobro ?? null),
     notas_internas: input.notas_internas ?? null,
     created_by: guard.userId,
   };
@@ -130,10 +143,16 @@ export async function updateContrato(input: {
   const guard = await assertAdmin();
   if (!guard.ok) return guard;
 
+  // Normalizamos dia_cobro al rango válido [1,28] si vino en el patch.
+  const patch: Partial<CreateContratoInput> = { ...input.patch };
+  if ("dia_cobro" in patch) {
+    patch.dia_cobro = clampDiaCobro(patch.dia_cobro ?? null);
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("contratos")
-    .update(input.patch)
+    .update(patch)
     .eq("id", input.id);
   if (error) return { ok: false, error: error.message };
 
@@ -427,4 +446,33 @@ export async function listContratosByCliente(input: {
     .order("created_at", { ascending: false });
   if (error) return { ok: false, error: error.message };
   return { ok: true, data: (data as unknown as Contrato[]) ?? [] };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Generar cuotas a demanda (útil cuando el contrato aún no se firmó pero ya
+// queremos trackear pagos manualmente). Idempotente: ON CONFLICT DO NOTHING.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function generarCuotasParaContrato(input: {
+  contrato_id: string;
+  meses?: number;
+}): Promise<ActionResult<{ cuotas_generadas: number }>> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return guard;
+
+  const meses = Math.max(1, Math.min(60, Math.trunc(input.meses ?? 12)));
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "generate_cuotas_para_contrato" as never,
+    {
+      p_contrato_id: input.contrato_id,
+      p_meses: meses,
+    } as never,
+  );
+  if (error) return { ok: false, error: error.message };
+
+  const generated = Number(data ?? 0);
+  revalidatePath("/cobros");
+  return { ok: true, data: { cuotas_generadas: generated } };
 }

@@ -1,14 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2, Lock, Plus, Save, Wrench, X } from "lucide-react";
+import {
+  CalendarClock,
+  ExternalLink,
+  Loader2,
+  Lock,
+  Plus,
+  Save,
+  Wrench,
+  X,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/Input";
 import { Dialog } from "@/components/admin/Dialog";
 import { createClient } from "@/lib/supabase/client";
-import { updateContrato } from "@/app/(admin)/contratos/actions";
+import {
+  generarCuotasParaContrato,
+  updateContrato,
+} from "@/app/(admin)/contratos/actions";
 import {
   TIPO_LABELS,
   tieneImplementacion,
@@ -55,6 +68,10 @@ export function ContratoEditor({
   // Plan trimestral con descuento (sólo si hay mantenimiento)
   const [planTrimestral, setPlanTrimestral] = useState(false);
   const [planDescuentoPct, setPlanDescuentoPct] = useState("10");
+  // Día de cobro (1-28). Default 9 — coincide con el ciclo histórico.
+  const [diaCobro, setDiaCobro] = useState("9");
+  // Botón "Generar cuotas ahora" — útil para contratos no firmados todavía.
+  const [generandoCuotas, setGenerandoCuotas] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -105,6 +122,11 @@ export function ContratoEditor({
           ? String(c.plan_descuento_pct)
           : "10",
       );
+      setDiaCobro(
+        c.dia_cobro !== undefined && c.dia_cobro !== null
+          ? String(c.dia_cobro)
+          : "9",
+      );
       setLoading(false);
     })();
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -115,6 +137,35 @@ export function ContratoEditor({
 
   const isBorrador = contrato?.estado === "borrador";
   const printHref = contrato ? `/imprimir/${contrato.id}` : "#";
+
+  async function handleGenerarCuotas() {
+    if (!contrato) return;
+    setGenerandoCuotas(true);
+    const res = await generarCuotasParaContrato({
+      contrato_id: contrato.id,
+      meses: 12,
+    });
+    setGenerandoCuotas(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    if (res.data.cuotas_generadas === 0) {
+      toast.message(
+        "No se generaron cuotas nuevas (ya estaban creadas o el contrato no tiene mantenimiento mensual).",
+      );
+    } else {
+      toast.success(`${res.data.cuotas_generadas} cuotas generadas`);
+    }
+  }
+
+  // El botón aparece si el contrato tiene mantenimiento_mensual > 0. Usamos el
+  // valor persistido (loaded) y no el del input local, así no aparece hasta que
+  // el admin guardó la cuota.
+  const tieneMantValor =
+    !!contrato &&
+    contrato.mantenimiento_mensual !== null &&
+    Number(contrato.mantenimiento_mensual) > 0;
 
   async function handleSave() {
     if (!contrato || !isBorrador) return;
@@ -220,6 +271,9 @@ export function ContratoEditor({
           persistMant && planTrimestral
             ? Number.parseFloat(planDescuentoPct) || 0
             : null,
+        dia_cobro: persistMant
+          ? Number.parseInt(diaCobro, 10) || 9
+          : 9,
         notas_internas: notas.trim() || undefined,
       },
     });
@@ -289,6 +343,13 @@ export function ContratoEditor({
             <ExternalLink size={13} />
             Ver contrato emitido
           </a>
+
+          {tieneMantValor ? (
+            <GenerarCuotasBlock
+              loading={generandoCuotas}
+              onClick={handleGenerarCuotas}
+            />
+          ) : null}
         </div>
       ) : (
         <div className="space-y-4">
@@ -463,6 +524,26 @@ export function ContratoEditor({
                 />
               </div>
                 </div>
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3 items-end">
+                  <div className="text-[11.5px] text-[var(--color-t3)] leading-relaxed">
+                    <strong className="text-[var(--color-t2)]">Día del mes en que se cobra</strong> (1-28).
+                    Define el ciclo automático: recordatorios día − 6 y − 3,
+                    vencimiento ese día y escalación día + 1.
+                  </div>
+                  <div>
+                    <Label htmlFor="ce-dia-cobro">Día de cobro</Label>
+                    <Input
+                      id="ce-dia-cobro"
+                      type="number"
+                      min="1"
+                      max="28"
+                      step="1"
+                      value={diaCobro}
+                      onChange={(e) => setDiaCobro(e.target.value)}
+                      placeholder="9"
+                    />
+                  </div>
+                </div>
                 <div className="mt-3">
                   <label className="flex items-start gap-2 text-[12.5px] text-[var(--color-t2)] cursor-pointer select-none p-2.5 rounded-[8px] border border-dashed border-[var(--color-b1)] bg-[var(--color-s1)]/40 hover:border-[var(--color-b2)] transition-colors">
                     <input
@@ -502,9 +583,50 @@ export function ContratoEditor({
               placeholder="Solo visibles para el equipo Codexy."
             />
           </div>
+
+          {tieneMantValor ? (
+            <GenerarCuotasBlock
+              loading={generandoCuotas}
+              onClick={handleGenerarCuotas}
+            />
+          ) : null}
         </div>
       )}
     </Dialog>
+  );
+}
+
+function GenerarCuotasBlock({
+  loading,
+  onClick,
+}: {
+  loading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className="rounded-[10px] border border-[var(--color-info-border)] bg-[var(--color-info-muted)] p-3.5">
+      <div className="flex items-start gap-2">
+        <CalendarClock size={14} className="text-[var(--color-info)] mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[12.5px] font-semibold text-[var(--color-t1)]">
+            Generar cuotas para los próximos 12 meses
+          </p>
+          <p className="text-[11px] text-[var(--color-t3)] mt-0.5 leading-relaxed">
+            Útil si todavía no se firmó pero querés empezar a trackear pagos
+            ahora. Idempotente: las cuotas que ya existen no se duplican.
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onClick}
+          loading={loading}
+        >
+          <Zap size={12} />
+          Generar
+        </Button>
+      </div>
+    </div>
   );
 }
 

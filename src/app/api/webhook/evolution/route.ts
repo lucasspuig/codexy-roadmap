@@ -473,6 +473,22 @@ export async function POST(req: NextRequest) {
   }
   // consulta_cliente / desconocido: requiere_atencion=true ya quedó seteado
 
+  // ── Notificación al admin (numero_escalacion) ────────────────────────────
+  // Disparamos un WA a tu número personal cuando:
+  //   - Se confirmó un pago (queremos saber al instante quién pagó)
+  //   - Un cliente registrado mandó un mensaje fuera de flujo
+  //     (consulta, baja, queja — algo que no es un comprobante)
+  //   - Un número desconocido escribió (potencial lead o spam)
+  // Postulantes intencionalmente NO disparan notif.
+  await notificarAdminSiCorresponde({
+    admin,
+    categoria,
+    cliente,
+    cuotaPendiente,
+    body,
+    phone,
+  });
+
   return NextResponse.json(
     {
       ok: true,
@@ -482,4 +498,109 @@ export async function POST(req: NextRequest) {
     },
     { status: 200, headers: NO_STORE },
   );
+}
+
+/**
+ * Centraliza la lógica de notificar a tu número personal cuando algo
+ * relevante pasa en el WhatsApp del bot. No bloquea la respuesta del
+ * webhook si el envío falla — solo logueamos.
+ */
+async function notificarAdminSiCorresponde(input: {
+  admin: ReturnType<typeof createAdminClient>;
+  categoria: string;
+  cliente: ClienteRow | null;
+  cuotaPendiente: {
+    monto_usd: number;
+    periodo: string;
+  } | null;
+  body: string | null;
+  phone: string;
+}): Promise<void> {
+  const { admin, categoria, cliente, cuotaPendiente, body, phone } = input;
+
+  // Solo notificamos en estos 3 casos
+  let templateId: string | null = null;
+  if (categoria === "comprobante_pago" && cliente && cuotaPendiente) {
+    templateId = "notif_admin_pago_recibido";
+  } else if (categoria === "consulta_cliente" && cliente) {
+    templateId = "notif_admin_mensaje_cliente";
+  } else if (categoria === "desconocido") {
+    templateId = "notif_admin_mensaje_desconocido";
+  }
+  if (!templateId) return;
+
+  // Leemos número de escalación + template en paralelo
+  const [agencyRes, tplRes, clienteFullRes] = await Promise.all([
+    admin
+      .from("agency_payment_data")
+      .select("numero_escalacion")
+      .eq("id", 1)
+      .maybeSingle(),
+    admin
+      .from("mensaje_templates")
+      .select("cuerpo, activo")
+      .eq("id", templateId)
+      .maybeSingle(),
+    cliente
+      ? admin
+          .from("clientes")
+          .select("nombre, empresa, telefono")
+          .eq("id", cliente.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const numeroAdmin =
+    (agencyRes.data as { numero_escalacion?: string | null } | null)
+      ?.numero_escalacion ?? null;
+  const tpl = tplRes.data as { cuerpo: string; activo: boolean } | null;
+  const clienteFull = clienteFullRes.data as
+    | { nombre: string; empresa: string | null; telefono: string | null }
+    | null;
+
+  if (!numeroAdmin) return;
+  if (!tpl || !tpl.activo) return;
+
+  // Construir contexto para el template
+  const telefonoCli =
+    clienteFull?.telefono ?? cliente?.telefono ?? null;
+  const ctx: Record<string, unknown> = {
+    cliente: {
+      nombre: clienteFull?.nombre ?? cliente?.nombre ?? "—",
+      empresa: clienteFull?.empresa ?? "",
+      telefono: telefonoCli ?? "",
+      telefono_link: telefonoCli
+        ? `https://wa.me/${normalizePhone(telefonoCli) ?? ""}`
+        : "",
+    },
+    cuota: cuotaPendiente
+      ? {
+          monto_usd: formatUSD(cuotaPendiente.monto_usd),
+          periodo: cuotaPendiente.periodo,
+        }
+      : { monto_usd: "—", periodo: "—" },
+    mensaje: {
+      texto: body && body.trim().length > 0 ? body.trim() : "(sin texto)",
+    },
+    telefono: {
+      formato: phone,
+    },
+  };
+
+  const cuerpoFinal = renderTemplate(tpl.cuerpo, ctx);
+  const sendRes = await sendWhatsapp({
+    telefono: numeroAdmin,
+    mensaje: cuerpoFinal,
+  });
+
+  await admin.from("mensajes_enviados").insert({
+    cliente_id: cliente?.id ?? null,
+    cuota_id: null,
+    template_id: templateId,
+    telefono_destino: normalizePhone(numeroAdmin) ?? numeroAdmin,
+    cuerpo: cuerpoFinal,
+    estado: sendRes.ok ? "enviado" : "fallido",
+    error: sendRes.error ?? null,
+    evolution_response: (sendRes.payload as object) ?? null,
+  });
 }

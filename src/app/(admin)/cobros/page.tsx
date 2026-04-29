@@ -26,7 +26,7 @@ export default async function CobrosPage() {
       fecha_recordatorio_2, fecha_vencimiento, fecha_escalacion, monto_usd,
       estado, es_trimestral, meses_cubiertos, pago_id, pagada_at,
       recordatorio_1_enviado_at, recordatorio_2_enviado_at,
-      clientes:clientes(id, nombre, empresa, telefono),
+      clientes:clientes(id, nombre, empresa, telefono, tipo),
       contratos:contratos(numero, servicio_titulo, moneda)
       `,
     )
@@ -51,7 +51,13 @@ export default async function CobrosPage() {
     pagada_at: string | null;
     recordatorio_1_enviado_at: string | null;
     recordatorio_2_enviado_at: string | null;
-    clientes: { id: string; nombre: string; empresa: string | null; telefono: string | null } | null;
+    clientes: {
+      id: string;
+      nombre: string;
+      empresa: string | null;
+      telefono: string | null;
+      tipo: string | null;
+    } | null;
     contratos: { numero: string; servicio_titulo: string; moneda: string } | null;
   };
 
@@ -78,6 +84,7 @@ export default async function CobrosPage() {
       nombre: r.clientes?.nombre ?? "(sin cliente)",
       empresa: r.clientes?.empresa ?? null,
       telefono: r.clientes?.telefono ?? null,
+      tipo: r.clientes?.tipo ?? null,
     },
     contrato: {
       numero: r.contratos?.numero ?? "—",

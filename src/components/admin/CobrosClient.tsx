@@ -11,15 +11,18 @@ import {
   CreditCard,
   Loader2,
   PhoneOff,
+  Plus,
   Send,
   Wallet,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/Input";
 import { ConfirmDialog, Dialog } from "@/components/admin/Dialog";
+import { NuevoCobroMensualDialog } from "@/components/admin/NuevoCobroMensualDialog";
 import {
   cancelarCuota,
   forzarRecordatorio,
@@ -60,6 +63,7 @@ export interface CobrosCuotaData {
     nombre: string;
     empresa: string | null;
     telefono: string | null;
+    tipo: string | null;
   };
   contrato: {
     numero: string;
@@ -95,6 +99,7 @@ export function CobrosClient({
     null,
   );
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [nuevoCobroOpen, setNuevoCobroOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -175,11 +180,21 @@ export function CobrosClient({
 
   return (
     <div className="px-4 sm:px-6 lg:px-7 py-6 max-w-[1300px] mx-auto w-full">
-      <div className="flex items-center gap-2 mb-1">
-        <Wallet size={16} className="text-[var(--color-info)]" />
-        <h1 className="text-[20px] font-semibold text-[var(--color-t1)] tracking-[-0.01em]">
-          Cobros
-        </h1>
+      <div className="flex items-start gap-2 mb-1 justify-between">
+        <div className="flex items-center gap-2">
+          <Wallet size={16} className="text-[var(--color-info)]" />
+          <h1 className="text-[20px] font-semibold text-[var(--color-t1)] tracking-[-0.01em]">
+            Cobros
+          </h1>
+        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setNuevoCobroOpen(true)}
+        >
+          <Plus size={13} />
+          Nuevo cobro mensual
+        </Button>
       </div>
       <p className="text-[13px] text-[var(--color-t3)] mb-5 leading-relaxed">
         Calendario de cuotas mensuales. Atrasadas primero, después esta semana
@@ -328,6 +343,15 @@ export function CobrosClient({
         confirmLabel="Cancelar cuota"
         loading={busyId === cancelarDialog?.id}
       />
+
+      <NuevoCobroMensualDialog
+        open={nuevoCobroOpen}
+        onClose={() => setNuevoCobroOpen(false)}
+        onCreated={() => {
+          setNuevoCobroOpen(false);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
@@ -447,11 +471,22 @@ function CuotaRow({
     <div className="rounded-[10px] border border-[var(--color-b1)] bg-[var(--color-s1)] px-3.5 py-2.5">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-[180px]">
-          <div className="text-[13px] font-medium text-[var(--color-t1)] truncate">
-            {cuota.cliente.nombre}
-            {cuota.cliente.empresa ? (
-              <span className="text-[var(--color-t3)] font-normal">
-                {" "}· {cuota.cliente.empresa}
+          <div className="text-[13px] font-medium text-[var(--color-t1)] truncate flex items-center gap-1.5">
+            <span className="truncate">
+              {cuota.cliente.nombre}
+              {cuota.cliente.empresa ? (
+                <span className="text-[var(--color-t3)] font-normal">
+                  {" "}· {cuota.cliente.empresa}
+                </span>
+              ) : null}
+            </span>
+            {cuota.cliente.tipo === "cobro_directo" ? (
+              <span
+                className="inline-flex items-center gap-1 text-[9.5px] uppercase tracking-wider px-1.5 py-0.5 rounded-full border border-[var(--color-info-border)] bg-[var(--color-info-muted)] text-[var(--color-info)] font-medium shrink-0"
+                title="Cliente creado directamente desde Cobros (no pasó por el CRM)"
+              >
+                <Zap size={9} />
+                Directo
               </span>
             ) : null}
           </div>
