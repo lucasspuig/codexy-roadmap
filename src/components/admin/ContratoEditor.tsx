@@ -52,6 +52,9 @@ export function ContratoEditor({
   // Toggle explícito para "Mantenimiento mensual posterior" en contratos
   // de Implementación con modalidad no-mensual.
   const [showMantenimiento, setShowMantenimiento] = useState(false);
+  // Plan trimestral con descuento (sólo si hay mantenimiento)
+  const [planTrimestral, setPlanTrimestral] = useState(false);
+  const [planDescuentoPct, setPlanDescuentoPct] = useState("10");
 
   useEffect(() => {
     if (!open) return;
@@ -95,6 +98,12 @@ export function ContratoEditor({
       setNotas(c.notas_internas ?? "");
       setShowMantenimiento(
         tieneMantenimiento(c.tipo, c.modalidad_pago) || tieneMantValor,
+      );
+      setPlanTrimestral(c.plan_periodicidad === "trimestral");
+      setPlanDescuentoPct(
+        c.plan_descuento_pct !== null && c.plan_descuento_pct !== undefined
+          ? String(c.plan_descuento_pct)
+          : "10",
       );
       setLoading(false);
     })();
@@ -205,6 +214,12 @@ export function ContratoEditor({
           : null,
         mora_porcentaje: persistMant ? Number.parseFloat(mora) || null : null,
         dias_gracia: persistMant ? Number.parseFloat(gracia) || null : null,
+        plan_periodicidad:
+          persistMant && planTrimestral ? "trimestral" : "mensual",
+        plan_descuento_pct:
+          persistMant && planTrimestral
+            ? Number.parseFloat(planDescuentoPct) || 0
+            : null,
         notas_internas: notas.trim() || undefined,
       },
     });
@@ -448,6 +463,32 @@ export function ContratoEditor({
                 />
               </div>
                 </div>
+                <div className="mt-3">
+                  <label className="flex items-start gap-2 text-[12.5px] text-[var(--color-t2)] cursor-pointer select-none p-2.5 rounded-[8px] border border-dashed border-[var(--color-b1)] bg-[var(--color-s1)]/40 hover:border-[var(--color-b2)] transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={planTrimestral}
+                      onChange={(e) => setPlanTrimestral(e.target.checked)}
+                      className="w-3.5 h-3.5 mt-0.5 accent-[var(--color-brand)]"
+                    />
+                    <span className="flex-1">
+                      <span className="block font-semibold text-[var(--color-t1)]">
+                        Plan trimestral con descuento
+                      </span>
+                      <span className="text-[11.5px] text-[var(--color-t3)] block leading-relaxed mt-0.5">
+                        Cobrá tres meses por adelantado a cambio de un descuento.
+                      </span>
+                    </span>
+                  </label>
+                  {planTrimestral ? (
+                    <PlanTrimestralPreview
+                      cuotaMensual={mantenimiento}
+                      descuentoPct={planDescuentoPct}
+                      moneda={moneda}
+                      onChangeDescuento={setPlanDescuentoPct}
+                    />
+                  ) : null}
+                </div>
               </div>
             ) : null;
           })()}
@@ -469,4 +510,71 @@ export function ContratoEditor({
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function PlanTrimestralPreview({
+  cuotaMensual,
+  descuentoPct,
+  moneda,
+  onChangeDescuento,
+}: {
+  cuotaMensual: string;
+  descuentoPct: string;
+  moneda: string;
+  onChangeDescuento: (v: string) => void;
+}) {
+  const cuota = Number.parseFloat(cuotaMensual);
+  const pct = Number.parseFloat(descuentoPct);
+  const cuotaValida = Number.isFinite(cuota) && cuota > 0;
+  const pctValido = Number.isFinite(pct) && pct >= 0 && pct < 100;
+  const totalSinDesc = cuotaValida ? cuota * 3 : 0;
+  const totalConDesc =
+    cuotaValida && pctValido ? totalSinDesc * (1 - pct / 100) : 0;
+  const fmt = (n: number): string =>
+    new Intl.NumberFormat("es-AR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(n);
+  return (
+    <div className="mt-2 grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3 items-end">
+      <div>
+        <Label htmlFor="ce-desc-pct">% descuento</Label>
+        <Input
+          id="ce-desc-pct"
+          type="number"
+          min="0"
+          max="100"
+          step="0.5"
+          value={descuentoPct}
+          onChange={(e) => onChangeDescuento(e.target.value)}
+          placeholder="10"
+        />
+      </div>
+      <div className="text-[11.5px] text-[var(--color-t2)] leading-relaxed pb-2">
+        {cuotaValida && pctValido ? (
+          <span>
+            <span style={{ fontFamily: "var(--ff-mono)" }}>
+              {moneda} {fmt(cuota)}
+            </span>{" "}
+            × 3 ={" "}
+            <span style={{ fontFamily: "var(--ff-mono)" }}>
+              {moneda} {fmt(totalSinDesc)}
+            </span>
+            . Con {pct}% off ={" "}
+            <span
+              className="text-[var(--color-brand)] font-semibold"
+              style={{ fontFamily: "var(--ff-mono)" }}
+            >
+              {moneda} {fmt(totalConDesc)}
+            </span>
+            .
+          </span>
+        ) : (
+          <span className="text-[var(--color-t3)] italic">
+            Cargá la cuota mensual y un % válido.
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }

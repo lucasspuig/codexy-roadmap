@@ -47,6 +47,10 @@ export interface Contrato {
   mantenimiento_mensual: number | null;
   mora_porcentaje: number | null;
   dias_gracia: number | null;
+  /** Periodicidad de la cuota de mantenimiento. Default 'mensual'. */
+  plan_periodicidad: "mensual" | "trimestral";
+  /** % de descuento aplicado cuando plan_periodicidad === 'trimestral'. */
+  plan_descuento_pct: number | null;
 
   fecha_emision: string | null;
   fecha_envio_cliente: string | null;

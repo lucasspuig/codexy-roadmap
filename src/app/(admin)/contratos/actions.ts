@@ -64,6 +64,10 @@ export interface CreateContratoInput {
   mora_porcentaje?: number | null;
   dias_gracia?: number | null;
   notas_internas?: string;
+  /** 'mensual' (default) o 'trimestral' con descuento. */
+  plan_periodicidad?: "mensual" | "trimestral";
+  /** % de descuento si plan_periodicidad === 'trimestral'. */
+  plan_descuento_pct?: number | null;
 }
 
 export async function createContrato(
@@ -99,6 +103,11 @@ export async function createContrato(
     mantenimiento_mensual: input.mantenimiento_mensual ?? null,
     mora_porcentaje: input.mora_porcentaje ?? null,
     dias_gracia: input.dias_gracia ?? null,
+    plan_periodicidad: input.plan_periodicidad ?? "mensual",
+    plan_descuento_pct:
+      input.plan_periodicidad === "trimestral"
+        ? input.plan_descuento_pct ?? null
+        : null,
     notas_internas: input.notas_internas ?? null,
     created_by: guard.userId,
   };

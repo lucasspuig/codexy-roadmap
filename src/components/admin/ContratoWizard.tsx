@@ -67,6 +67,9 @@ interface WizardState {
   /** Solo aplica a tipo "implementacion" con modalidad no-mensual. Toggle para sumar
    * una cuota mensual de mantenimiento posterior al desarrollo inicial. */
   incluir_mantenimiento: boolean;
+  /** Pre-paga trimestral con descuento sobre la cuota mensual. */
+  plan_trimestral: boolean;
+  plan_descuento_pct: string;
 }
 
 const STEPS = [
@@ -141,6 +144,8 @@ function initialState(
     mora_porcentaje: "10",
     dias_gracia: "5",
     incluir_mantenimiento: tieneMantenimiento(tipo, modalidad),
+    plan_trimestral: false,
+    plan_descuento_pct: "10",
   };
 }
 
@@ -343,6 +348,14 @@ export function ContratoWizard({
           ? gracia
           : null
         : null,
+      plan_periodicidad:
+        persistMantenimiento && state.plan_trimestral
+          ? "trimestral"
+          : "mensual",
+      plan_descuento_pct:
+        persistMantenimiento && state.plan_trimestral
+          ? Number.parseFloat(state.plan_descuento_pct) || 0
+          : null,
     });
     setSubmitting(false);
     if (!res.ok) {
@@ -895,6 +908,36 @@ function Step3({
             />
           </div>
           </div>
+
+          {/* Plan trimestral con descuento */}
+          <div className="mt-3">
+            <label className="flex items-start gap-2 text-[12.5px] text-[var(--color-t2)] cursor-pointer select-none p-2.5 rounded-[8px] border border-dashed border-[var(--color-b1)] bg-[var(--color-s1)]/40 hover:border-[var(--color-b2)] transition-colors">
+              <input
+                type="checkbox"
+                checked={state.plan_trimestral}
+                onChange={(e) =>
+                  onChange({ plan_trimestral: e.target.checked })
+                }
+                className="w-3.5 h-3.5 mt-0.5 accent-[var(--color-brand)]"
+              />
+              <span className="flex-1">
+                <span className="block font-semibold text-[var(--color-t1)]">
+                  Plan trimestral con descuento
+                </span>
+                <span className="text-[11.5px] text-[var(--color-t3)] block leading-relaxed mt-0.5">
+                  Cobrá tres meses por adelantado a cambio de un descuento.
+                </span>
+              </span>
+            </label>
+            {state.plan_trimestral ? (
+              <PlanTrimestralDetalle
+                cuotaMensual={state.mantenimiento_mensual}
+                descuentoPct={state.plan_descuento_pct}
+                moneda={state.moneda}
+                onChangeDescuento={(v) => onChange({ plan_descuento_pct: v })}
+              />
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -1032,6 +1075,75 @@ function SplitResumen({
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// ─── Plan trimestral helper ──────────────────────────────────────────────────
+
+function PlanTrimestralDetalle({
+  cuotaMensual,
+  descuentoPct,
+  moneda,
+  onChangeDescuento,
+}: {
+  cuotaMensual: string;
+  descuentoPct: string;
+  moneda: string;
+  onChangeDescuento: (v: string) => void;
+}) {
+  const cuota = Number.parseFloat(cuotaMensual);
+  const pct = Number.parseFloat(descuentoPct);
+  const cuotaValida = Number.isFinite(cuota) && cuota > 0;
+  const pctValido = Number.isFinite(pct) && pct >= 0 && pct < 100;
+  const totalSinDescuento = cuotaValida ? cuota * 3 : 0;
+  const totalConDescuento =
+    cuotaValida && pctValido ? totalSinDescuento * (1 - pct / 100) : 0;
+  const fmt = (n: number): string =>
+    new Intl.NumberFormat("es-AR", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(n);
+  return (
+    <div className="mt-2 grid grid-cols-1 sm:grid-cols-[120px_1fr] gap-3 items-end">
+      <div>
+        <Label htmlFor="cw-desc-pct">% descuento</Label>
+        <Input
+          id="cw-desc-pct"
+          type="number"
+          min="0"
+          max="100"
+          step="0.5"
+          value={descuentoPct}
+          onChange={(e) => onChangeDescuento(e.target.value)}
+          placeholder="10"
+        />
+      </div>
+      <div className="text-[11.5px] text-[var(--color-t2)] leading-relaxed pb-2">
+        {cuotaValida && pctValido ? (
+          <span>
+            <span style={{ fontFamily: "var(--ff-mono)" }}>
+              {moneda} {fmt(cuota)}
+            </span>{" "}
+            × 3 ={" "}
+            <span style={{ fontFamily: "var(--ff-mono)" }}>
+              {moneda} {fmt(totalSinDescuento)}
+            </span>
+            . Con {pct}% off ={" "}
+            <span
+              className="text-[var(--color-brand)] font-semibold"
+              style={{ fontFamily: "var(--ff-mono)" }}
+            >
+              {moneda} {fmt(totalConDescuento)}
+            </span>
+            .
+          </span>
+        ) : (
+          <span className="text-[var(--color-t3)] italic">
+            Cargá la cuota mensual y un % válido.
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -100,6 +100,8 @@ export type Cliente = {
   rubro: string | null;
   estado_venta: string;
   tipo: string;
+  /** Token UUID para la URL pública /pagar/[token]. */
+  pago_token: string | null;
   created_at: string;
 };
 
@@ -181,6 +183,36 @@ export type Database = {
         Relationships: [];
       };
       pagos: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      cuotas_mensuales: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      mensaje_templates: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      mensajes_enviados: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      mensajes_recibidos: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      agency_payment_data: {
         Row: Record<string, unknown>;
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;

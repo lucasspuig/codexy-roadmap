@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { ChevronRight, LogOut, Search, Settings } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronRight,
+  LogOut,
+  Search,
+  Settings,
+} from "lucide-react";
 
 import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
@@ -142,6 +148,24 @@ export function Topbar({ userEmail, userName, avatarUrl }: TopbarProps) {
             </span>
           </div>
 
+          {/* Cobros */}
+          <Link
+            href="/cobros"
+            aria-label="Cobros"
+            title="Cobros · cuotas mensuales"
+            className={cn(
+              "inline-flex items-center justify-center h-9 w-9 rounded-[8px]",
+              "border border-[var(--color-b1)] bg-[var(--color-s1)]",
+              "text-[var(--color-t2)] hover:text-[var(--color-t1)]",
+              "hover:border-[var(--color-b2)] hover:bg-[var(--color-s2)]",
+              "transition-all duration-200",
+              pathname?.startsWith("/cobros") &&
+                "text-[var(--color-brand)] border-[var(--color-brand-border)] bg-[var(--color-brand-muted)]",
+            )}
+          >
+            <CalendarDays size={13} />
+          </Link>
+
           {/* Configuración */}
           <Link
             href="/configuracion"
@@ -247,9 +271,11 @@ function breadcrumbsFromPath(pathname: string): Array<{ label: string; href: str
               ? "Configuración"
               : p === "contratos"
                 ? "Contratos"
-                : p === "imprimir"
-                  ? "Imprimir"
-                  : p.charAt(0).toUpperCase() + p.slice(1);
+                : p === "cobros"
+                  ? "Cobros"
+                  : p === "imprimir"
+                    ? "Imprimir"
+                    : p.charAt(0).toUpperCase() + p.slice(1);
       crumbs.push({ label, href: acc });
     }
   }
