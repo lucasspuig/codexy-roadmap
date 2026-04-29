@@ -11,8 +11,10 @@
  *   3. Detectar postulantes (CV/curriculum) para no alertar al admin.
  *   4. Marcar consultas de clientes / desconocidos para que el admin las vea.
  *
- * Auth: header `X-Webhook-Secret` con el valor de WEBHOOK_SECRET. Si no
- * coincide, 401.
+ * Auth: el secret se compara contra WEBHOOK_SECRET (env var). Se acepta
+ * via header `X-Webhook-Secret` O via query param `?secret=...`. Esto
+ * último es porque la UI de Evolution API no expone campo de headers
+ * custom — solo URL. Si no coincide, 401.
  *
  * Como el webhook es anónimo (Evolution no lleva sesión de usuario), usamos
  * el admin client (service_role) — bypassea RLS para insertar / actualizar
@@ -226,7 +228,9 @@ function matchClienteByPhone(
 
 export async function POST(req: NextRequest) {
   const expected = process.env.WEBHOOK_SECRET;
-  const provided = req.headers.get("x-webhook-secret");
+  const fromHeader = req.headers.get("x-webhook-secret");
+  const fromQuery = req.nextUrl.searchParams.get("secret");
+  const provided = fromHeader || fromQuery;
   if (!expected || !provided || provided !== expected) {
     return NextResponse.json(
       { error: "unauthorized" },
