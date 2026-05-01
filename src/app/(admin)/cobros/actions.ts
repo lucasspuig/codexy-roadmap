@@ -108,7 +108,7 @@ export async function forzarRecordatorio(input: {
   }
 
   const agency = (agencyRow as Record<string, unknown> | null) ?? null;
-  const ctx = buildTemplateContext(cuota, cliente, agency, cotizacion?.promedio ?? null);
+  const ctx = buildTemplateContext(cuota, cliente, agency, cotizacion?.cobro ?? null);
   const cuerpo = renderTemplate(tpl, ctx);
 
   const result = await sendWhatsapp({

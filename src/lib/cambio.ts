@@ -14,10 +14,21 @@ export interface CotizacionDolar {
   promedio: number;
   compra: number;
   venta: number;
+  /**
+   * Tipo de cambio que usamos para COBRAR (cuota USD → equivalente ARS).
+   * = venta + 1% de buffer para cubrir slippage intradiario.
+   * Es lo que se aplica en recordatorios, /pagar, y cálculos de saldo
+   * cuando un pago en ARS se imputa contra un contrato USD.
+   */
+  cobro: number;
   /** ISO timestamp del último update reportado por la API */
   fecha_actualizacion: string;
   fuente: string;
 }
+
+/** Buffer porcentual que sumamos sobre el "venta" del BNA para cobrar.
+ *  Cubre el spread intradiario y el costo real de comprar USD. */
+export const TC_COBRO_BUFFER = 0.01;
 
 interface DolarApiResponse {
   compra?: number;
@@ -60,6 +71,7 @@ export async function fetchCotizacionDolar(): Promise<CotizacionDolar | null> {
       compra: data.compra,
       venta: data.venta,
       promedio: round4((data.compra + data.venta) / 2),
+      cobro: round4(data.venta * (1 + TC_COBRO_BUFFER)),
       fecha_actualizacion: data.fechaActualizacion ?? new Date().toISOString(),
       fuente: data.nombre ?? "Dólar oficial (BNA)",
     };

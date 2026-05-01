@@ -114,7 +114,7 @@ export default async function PublicRoadmapPage({ params }: PageProps) {
           saldos ? (
             <EstadoCuentaCard
               saldos={saldos}
-              fallbackTC={cotizacion?.promedio ?? null}
+              fallbackTC={cotizacion?.cobro ?? null}
             />
           ) : null
         }

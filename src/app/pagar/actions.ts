@@ -73,7 +73,7 @@ export async function crearPreferenciaPago(input: {
 
   const mode: MPCurrencyMode = input.currencyMode ?? "ARS";
   const cotizacion = mode === "ARS" ? await fetchCotizacionDolar() : null;
-  const tcOficial = cotizacion?.promedio ?? null;
+  const tcOficial = cotizacion?.cobro ?? null;
 
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? "https://plan.codexyoficial.com";

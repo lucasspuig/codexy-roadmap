@@ -122,7 +122,7 @@ async function processCobros(): Promise<RunReport> {
     }
     const tpl = tplById.get("recordatorio_1");
     if (!tpl) continue;
-    const ctx = buildContext(cuota, cliente, agency, cotizacion?.promedio ?? null);
+    const ctx = buildContext(cuota, cliente, agency, cotizacion?.cobro ?? null);
     const cuerpo = renderTemplate(tpl, ctx);
 
     const result = await sendWhatsapp({
@@ -171,7 +171,7 @@ async function processCobros(): Promise<RunReport> {
     if (!cliente?.telefono) continue;
     const tpl = tplById.get("recordatorio_2");
     if (!tpl) continue;
-    const ctx = buildContext(cuota, cliente, agency, cotizacion?.promedio ?? null);
+    const ctx = buildContext(cuota, cliente, agency, cotizacion?.cobro ?? null);
     const cuerpo = renderTemplate(tpl, ctx);
 
     const result = await sendWhatsapp({
@@ -225,7 +225,7 @@ async function processCobros(): Promise<RunReport> {
       if (!cliente) continue;
       const tpl = tplById.get("escalacion_admin");
       if (!tpl) continue;
-      const ctx = buildContext(cuota, cliente, agency, cotizacion?.promedio ?? null);
+      const ctx = buildContext(cuota, cliente, agency, cotizacion?.cobro ?? null);
       // contexto extra para escalación
       (ctx.admin as Record<string, unknown>) = {
         url_cliente: `https://plan.codexyoficial.com/dashboard?cliente=${cliente.id}`,

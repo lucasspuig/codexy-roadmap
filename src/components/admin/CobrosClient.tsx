@@ -114,7 +114,7 @@ export function CobrosClient({
     };
   }, []);
 
-  const tcOficial = cotizacion?.promedio ?? null;
+  const tcOficial = cotizacion?.cobro ?? null;
 
   // KPIs del mes corriente
   const kpis = useMemo(() => {

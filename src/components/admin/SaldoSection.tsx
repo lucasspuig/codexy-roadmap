@@ -101,7 +101,7 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
     router.refresh();
   }
 
-  const fallbackTC = cotizacion?.promedio ?? null;
+  const fallbackTC = cotizacion?.cobro ?? null;
 
   const saldo = useMemo(() => {
     if (!contratos || !pagos) return null;
@@ -216,7 +216,7 @@ export function SaldoSection({ clienteId, clienteNombre }: SaldoSectionProps) {
           <strong>{pagosSinTC}</strong>{" "}
           {pagosSinTC === 1 ? "pago" : "pagos"} en moneda distinta al contrato
           sin tipo de cambio cargado. Estimo el equivalente con el dólar oficial
-          actual ({formatTipoCambio(cotizacion.promedio)}) — para que quede
+          actual ({formatTipoCambio(cotizacion.cobro)}) — para que quede
           asentado en el contrato editá cada pago y poné el TC del día en que
           se cobró.
         </div>
@@ -653,7 +653,7 @@ function PagoFormDialog({
     if (tipoCambio !== "") return;
     if (!cotizacionDialog) return;
     /* eslint-disable react-hooks/set-state-in-effect */
-    setTipoCambio(String(cotizacionDialog.promedio));
+    setTipoCambio(String(cotizacionDialog.cobro));
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open, requiereTC, tipoCambio, cotizacionDialog]);
 
@@ -856,7 +856,7 @@ function PagoFormDialog({
                   onChange={(e) => setTipoCambio(e.target.value)}
                   placeholder={
                     cotizacionDialog
-                      ? String(cotizacionDialog.promedio)
+                      ? String(cotizacionDialog.cobro)
                       : "1350"
                   }
                 />
@@ -872,7 +872,7 @@ function PagoFormDialog({
                     <button
                       type="button"
                       onClick={() =>
-                        setTipoCambio(String(cotizacionDialog.promedio))
+                        setTipoCambio(String(cotizacionDialog.cobro))
                       }
                       className="text-[var(--color-info)] hover:underline"
                     >
