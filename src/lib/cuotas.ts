@@ -187,19 +187,33 @@ export function formatARS(n: number): string {
   }).format(Math.round(n));
 }
 
-/** "9 abr 2026" para mostrar en mensajes. */
+/** "9 abr 2026" para mostrar en mensajes.
+ *  IMPORTANTE: las fechas en DB son tipo `date` (YYYY-MM-DD), Postgres las
+ *  serializa como UTC midnight. Si las parseamos con `new Date()` y después
+ *  formatemos con timeZone Argentina (UTC-3), el día se desplaza al anterior.
+ *  Forzamos timeZone UTC para que el día coincida con el de la DB. */
 export function formatFechaCorta(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-AR", {
+  return new Date(parseDateOnly(iso)).toLocaleDateString("es-AR", {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   });
 }
 
 /** "09/04" para mostrar en mensajes (formato corto). */
 export function formatFechaDDMM(iso: string): string {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const d = new Date(parseDateOnly(iso));
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   return `${dd}/${mm}`;
+}
+
+/** Parsea "YYYY-MM-DD" o ISO completo y devuelve el ms en UTC midnight. */
+function parseDateOnly(iso: string): number {
+  // Si ya viene con T (ISO datetime), usar tal cual
+  if (iso.includes("T")) return new Date(iso).getTime();
+  // Si es solo "YYYY-MM-DD", construir UTC midnight
+  const [y, m, d] = iso.split("-").map((s) => Number(s));
+  return Date.UTC(y, m - 1, d);
 }
