@@ -311,6 +311,11 @@ export interface CrearCobroIndependienteInput {
   cuota_mensual: number;
   dia_cobro?: number;
   recordatorios_activos?: boolean;
+  /**
+   * Si true: la primera cuota se genera para el MES EN CURSO.
+   * Si false (default): para el mes siguiente al de la firma.
+   */
+  iniciar_mes_actual?: boolean;
 }
 
 export async function crearCobroIndependiente(
@@ -386,10 +391,11 @@ export async function crearCobroIndependiente(
   if (numErr) return { ok: false, error: numErr.message };
   const numero = (numData as unknown as string) ?? `CTX-${new Date().getFullYear()}-001`;
 
-  // 3) Crear el contrato como BORRADOR (el trigger fire-on-firmado solo dispara
-  // en UPDATE; insertamos borrador y después lo pasamos a firmado_completo).
+  // 3) Crear el contrato directamente como firmado_completo. NO disparamos
+  // el trigger AFTER UPDATE — generamos las cuotas manualmente con el flag
+  // `iniciar_mes_actual` que pidió el admin.
   const hoy = new Date();
-  const hoyDate = hoy.toISOString().slice(0, 10); // YYYY-MM-DD para fecha_emision
+  const hoyDate = hoy.toISOString().slice(0, 10);
   const hoyTs = hoy.toISOString();
   const tituloDefault = `Cobro mensual · ${nombre}`;
 
@@ -399,13 +405,17 @@ export async function crearCobroIndependiente(
       numero,
       cliente_id: clienteId,
       tipo: "mantenimiento",
-      estado: "borrador",
+      estado: "firmado_completo",
       servicio_titulo: tituloDefault,
       modalidad_pago: "mensual",
       monto_total: cuota * 12,
       moneda: "USD",
       mantenimiento_mensual: cuota,
       fecha_emision: hoyDate,
+      fecha_envio_cliente: hoyTs,
+      fecha_firma_prestador: hoyTs,
+      fecha_firma_cliente: hoyTs,
+      fecha_firmado_completo: hoyTs,
       dia_cobro: diaCobro,
       detalle_pagos: [
         {
@@ -424,21 +434,17 @@ export async function crearCobroIndependiente(
   if (contErr) return { ok: false, error: contErr.message };
   const contratoId = (contInserted as { id: string }).id;
 
-  // 4) Pasar a firmado_completo para disparar el trigger que genera cuotas
-  const { error: updErr } = await supabase
-    .from("contratos")
-    .update({
-      estado: "firmado_completo",
-      fecha_firmado_completo: hoyTs,
-      fecha_firma_prestador: hoyTs,
-      fecha_firma_cliente: hoyTs,
-      fecha_envio_cliente: hoyTs,
-    })
-    .eq("id", contratoId);
-  if (updErr) {
-    // Si falla, dejamos el contrato en borrador; no eliminamos para que el admin
-    // pueda revisar manualmente.
-    return { ok: false, error: updErr.message };
+  // 4) Generar las cuotas para los próximos 12 meses con el flag pedido.
+  const { error: rpcErr } = await supabase.rpc(
+    "generate_cuotas_para_contrato" as never,
+    {
+      p_contrato_id: contratoId,
+      p_meses: 12,
+      p_iniciar_mes_actual: input.iniciar_mes_actual === true,
+    } as never,
+  );
+  if (rpcErr) {
+    return { ok: false, error: `Cuotas: ${rpcErr.message}` };
   }
 
   // 5) Contar cuotas generadas

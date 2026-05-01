@@ -15,6 +15,18 @@ export interface NuevoCobroMensualDialogProps {
   onCreated: () => void;
 }
 
+/** Devuelve el nombre del mes (capitalizado, ej. "Mayo 2026") con offset desde hoy. */
+function monthLabel(offset: number): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  const m = d.toLocaleDateString("es-AR", {
+    month: "long",
+    year: "numeric",
+  });
+  return m.charAt(0).toUpperCase() + m.slice(1);
+}
+
 /**
  * Crea un cobro mensual "rápido" — cliente + contrato de mantenimiento +
  * 12 cuotas — sin pasar por el embudo del CRM.
@@ -30,6 +42,7 @@ export function NuevoCobroMensualDialog({
   const [cuota, setCuota] = useState("");
   const [diaCobro, setDiaCobro] = useState("9");
   const [recordatoriosActivos, setRecordatoriosActivos] = useState(true);
+  const [iniciarMesActual, setIniciarMesActual] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -41,6 +54,7 @@ export function NuevoCobroMensualDialog({
     setCuota("");
     setDiaCobro("9");
     setRecordatoriosActivos(true);
+    setIniciarMesActual(false);
     setSubmitting(false);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [open]);
@@ -76,6 +90,7 @@ export function NuevoCobroMensualDialog({
       cuota_mensual: cuotaNum,
       dia_cobro: dcNum,
       recordatorios_activos: recordatoriosActivos,
+      iniciar_mes_actual: iniciarMesActual,
     });
     setSubmitting(false);
 
@@ -171,6 +186,47 @@ export function NuevoCobroMensualDialog({
             />
           </div>
         </div>
+
+        <div>
+          <Label className="mb-1.5 block">Cuándo arranca a cobrar</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setIniciarMesActual(true)}
+              className={
+                "rounded-[8px] border px-3 py-2.5 text-left transition-colors " +
+                (iniciarMesActual
+                  ? "border-[var(--color-brand)] bg-[var(--color-brand-muted)] text-[var(--color-t1)]"
+                  : "border-[var(--color-b1)] bg-[var(--color-s2)]/30 text-[var(--color-t2)] hover:border-[var(--color-b2)]")
+              }
+            >
+              <div className="text-[12.5px] font-semibold">
+                {monthLabel(0)}
+              </div>
+              <div className="text-[11px] text-[var(--color-t3)] mt-0.5">
+                Primera cuota este mes
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIniciarMesActual(false)}
+              className={
+                "rounded-[8px] border px-3 py-2.5 text-left transition-colors " +
+                (!iniciarMesActual
+                  ? "border-[var(--color-brand)] bg-[var(--color-brand-muted)] text-[var(--color-t1)]"
+                  : "border-[var(--color-b1)] bg-[var(--color-s2)]/30 text-[var(--color-t2)] hover:border-[var(--color-b2)]")
+              }
+            >
+              <div className="text-[12.5px] font-semibold">
+                {monthLabel(1)}
+              </div>
+              <div className="text-[11px] text-[var(--color-t3)] mt-0.5">
+                Primera cuota mes siguiente
+              </div>
+            </button>
+          </div>
+        </div>
+
         <label className="flex items-start gap-2 text-[12.5px] text-[var(--color-t2)] cursor-pointer select-none p-2.5 rounded-[8px] border border-dashed border-[var(--color-b1)] bg-[var(--color-s2)]/30 hover:border-[var(--color-b2)] transition-colors">
           <input
             type="checkbox"
@@ -188,11 +244,13 @@ export function NuevoCobroMensualDialog({
             </span>
           </span>
         </label>
+
         <div className="text-[11.5px] text-[var(--color-t3)] flex items-start gap-1.5 leading-relaxed">
           <Plus size={12} className="mt-0.5 shrink-0" />
           <span>
-            Esto crea un contrato de mantenimiento auto-firmado, suma 12 cuotas
-            mensuales y empieza a cobrar el mes siguiente.
+            Crea un contrato auto-firmado y genera 12 cuotas mensuales empezando
+            en <strong>{monthLabel(iniciarMesActual ? 0 : 1)}</strong>.
+            Vencimiento: día {diaCobro || "9"} de cada mes.
           </span>
         </div>
       </div>
