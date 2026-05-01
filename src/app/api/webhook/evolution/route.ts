@@ -42,6 +42,16 @@ interface EvolutionMessageKey {
   remoteJid?: string;
   fromMe?: boolean;
   id?: string;
+  /**
+   * WhatsApp ahora usa LID (Lightweight ID) como remoteJid cuando el
+   * usuario tiene la privacidad de número activada. En esos casos viene
+   * `addressingMode: "lid"` y el número real está en `remoteJidAlt`.
+   */
+  addressingMode?: string;
+  remoteJidAlt?: string;
+  senderPn?: string;
+  participant?: string;
+  participantPn?: string;
 }
 
 interface EvolutionImageMessage {
@@ -137,9 +147,40 @@ function detectarCategoria(input: {
 /** Extrae el número de teléfono de un remoteJid tipo "5491131245678@s.whatsapp.net" */
 function phoneFromJid(jid: string | undefined): string | null {
   if (!jid) return null;
+  // Si viene un LID (formato "12345@lid"), no lo aceptamos como teléfono.
+  if (jid.endsWith("@lid")) return null;
   const at = jid.indexOf("@");
   const raw = at >= 0 ? jid.slice(0, at) : jid;
   return normalizePhone(raw);
+}
+
+/**
+ * Resuelve el número de teléfono REAL del que mandó el mensaje. Maneja el
+ * caso WhatsApp privacy:
+ *   - Si addressingMode === "lid" → el remoteJid es un LID (id interno),
+ *     el número real está en remoteJidAlt
+ *   - Si no → usar remoteJid directo
+ *
+ * También intenta como fallback: senderPn / participantPn (algunos
+ * mensajes los traen).
+ */
+function phoneFromKey(key: EvolutionMessageKey | undefined): string | null {
+  if (!key) return null;
+
+  // 1. Si está en modo LID, preferimos remoteJidAlt
+  if (key.addressingMode === "lid") {
+    const fromAlt = phoneFromJid(key.remoteJidAlt);
+    if (fromAlt) return fromAlt;
+    // Fallbacks adicionales
+    const fromSender = normalizePhone(key.senderPn ?? "");
+    if (fromSender) return fromSender;
+    const fromParticipant = normalizePhone(key.participantPn ?? "");
+    if (fromParticipant) return fromParticipant;
+    return null;
+  }
+
+  // 2. Modo normal: phoneFromJid del remoteJid
+  return phoneFromJid(key.remoteJid);
 }
 
 /** Obtiene el cuerpo del mensaje del payload de Evolution. */
@@ -264,7 +305,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const phone = phoneFromJid(data.key?.remoteJid);
+  const phone = phoneFromKey(data.key);
   if (!phone) {
     return NextResponse.json(
       { ok: true, skipped: "no_phone" },
