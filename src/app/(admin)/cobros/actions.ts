@@ -511,3 +511,283 @@ function buildTemplateContext(
     mp: { link: "" },
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Aumento de tarifa masivo
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ClienteConCobro {
+  cliente_id: string;
+  cliente_nombre: string;
+  cliente_empresa: string | null;
+  cliente_telefono: string | null;
+  contrato_id: string;
+  contrato_numero: string;
+  monto_actual_usd: number;
+}
+
+/**
+ * Lista los clientes que tienen un contrato activo con mantenimiento mensual.
+ * Para el modal de "Comunicar aumento".
+ */
+export async function listClientesConCobroActivo(): Promise<
+  ActionResult<ClienteConCobro[]>
+> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return guard;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contratos")
+    .select(
+      "id, numero, mantenimiento_mensual, cliente_id, clientes:clientes(id, nombre, empresa, telefono)",
+    )
+    .in("estado", ["enviado", "firmado_cliente", "firmado_completo"])
+    .gt("mantenimiento_mensual", 0)
+    .order("created_at", { ascending: false });
+
+  if (error) return { ok: false, error: error.message };
+
+  const rows = (data ?? []) as unknown as Array<{
+    id: string;
+    numero: string;
+    mantenimiento_mensual: number;
+    cliente_id: string;
+    clientes: {
+      id: string;
+      nombre: string;
+      empresa: string | null;
+      telefono: string | null;
+    } | null;
+  }>;
+
+  const result: ClienteConCobro[] = rows
+    .filter((r) => r.clientes != null)
+    .map((r) => ({
+      cliente_id: r.clientes!.id,
+      cliente_nombre: r.clientes!.nombre,
+      cliente_empresa: r.clientes!.empresa,
+      cliente_telefono: r.clientes!.telefono,
+      contrato_id: r.id,
+      contrato_numero: r.numero,
+      monto_actual_usd: Number(r.mantenimiento_mensual ?? 0),
+    }));
+
+  return { ok: true, data: result };
+}
+
+export interface AumentoInput {
+  /** Cantidad en USD que se SUMA al monto actual (puede ser positivo o negativo). */
+  delta_usd: number;
+  /** Período desde el que aplica, formato 'YYYY-MM' (ej: '2026-06'). */
+  periodo_desde: string;
+  /** IDs de los contratos a los que aplicar. Si vacío → falla. */
+  contrato_ids: string[];
+}
+
+export interface AumentoResultadoCliente {
+  contrato_id: string;
+  cliente_nombre: string;
+  ok: boolean;
+  monto_anterior?: number;
+  monto_nuevo?: number;
+  cuotas_actualizadas?: number;
+  wa_enviado?: boolean;
+  error?: string;
+}
+
+/**
+ * Aplica un aumento masivo: para cada contrato seleccionado:
+ *   1. Llama al RPC aplicar_aumento_tarifa (actualiza contrato + cuotas)
+ *   2. Manda el WA con template aviso_aumento al cliente
+ *   3. Audita en mensajes_enviados
+ */
+export async function comunicarAumentoMasivo(
+  input: AumentoInput,
+): Promise<ActionResult<{ resultados: AumentoResultadoCliente[] }>> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return guard;
+
+  const delta = Number(input.delta_usd);
+  if (!Number.isFinite(delta) || delta === 0) {
+    return { ok: false, error: "Delta debe ser distinto de 0" };
+  }
+  if (!input.periodo_desde || !/^\d{4}-\d{2}$/.test(input.periodo_desde)) {
+    return { ok: false, error: "Período inválido (formato YYYY-MM)" };
+  }
+  if (!Array.isArray(input.contrato_ids) || input.contrato_ids.length === 0) {
+    return { ok: false, error: "Seleccioná al menos un cliente" };
+  }
+
+  const supabase = await createClient();
+
+  // Levantar template + cotización + datos comunes
+  const [{ data: tplRow }, cotizacion] = await Promise.all([
+    supabase
+      .from("mensaje_templates")
+      .select("cuerpo")
+      .eq("id", "aviso_aumento")
+      .eq("activo", true)
+      .maybeSingle(),
+    fetchCotizacionDolar(),
+  ]);
+  const cuerpoTpl = (tplRow as { cuerpo: string } | null)?.cuerpo;
+  if (!cuerpoTpl) {
+    return {
+      ok: false,
+      error: "Template aviso_aumento no encontrado o inactivo",
+    };
+  }
+  const tcOficial = cotizacion?.cobro ?? null;
+
+  // Date helpers para "Mes Año" y "DD/MM/YYYY"
+  const [yStr, mStr] = input.periodo_desde.split("-");
+  const yNum = Number(yStr);
+  const mNum = Number(mStr);
+  const fechaPrimerCobro = (() => {
+    // El día de cobro lo sacamos de cada contrato individualmente
+    return null as unknown as string;
+  });
+  void fechaPrimerCobro;
+
+  const mesAplicaLabel = new Date(Date.UTC(yNum, mNum - 1, 1))
+    .toLocaleDateString("es-AR", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    })
+    .replace(/^./, (c) => c.toUpperCase());
+
+  // Iterar contratos
+  const resultados: AumentoResultadoCliente[] = [];
+  for (const contratoId of input.contrato_ids) {
+    // Datos del contrato + cliente
+    const { data: contRow, error: contErr } = await supabase
+      .from("contratos")
+      .select(
+        "id, mantenimiento_mensual, dia_cobro, cliente_id, clientes:clientes(nombre, empresa, telefono)",
+      )
+      .eq("id", contratoId)
+      .single();
+
+    const cont = contRow as unknown as {
+      id: string;
+      mantenimiento_mensual: number;
+      dia_cobro: number;
+      cliente_id: string;
+      clientes: {
+        nombre: string;
+        empresa: string | null;
+        telefono: string | null;
+      } | null;
+    } | null;
+
+    if (contErr || !cont || !cont.clientes) {
+      resultados.push({
+        contrato_id: contratoId,
+        cliente_nombre: "(no encontrado)",
+        ok: false,
+        error: contErr?.message ?? "Contrato/cliente no encontrado",
+      });
+      continue;
+    }
+
+    const montoActual = Number(cont.mantenimiento_mensual ?? 0);
+    const montoNuevo = montoActual + delta;
+    if (montoNuevo <= 0) {
+      resultados.push({
+        contrato_id: contratoId,
+        cliente_nombre: cont.clientes.nombre,
+        ok: false,
+        error: "El monto resultante sería <= 0",
+      });
+      continue;
+    }
+
+    // 1) RPC: aplicar el aumento (contrato + cuotas)
+    const { data: rpcData, error: rpcErr } = await supabase.rpc(
+      "aplicar_aumento_tarifa" as never,
+      {
+        p_contrato_id: contratoId,
+        p_nuevo_monto_usd: montoNuevo,
+        p_periodo_desde: input.periodo_desde,
+      } as never,
+    );
+    if (rpcErr) {
+      resultados.push({
+        contrato_id: contratoId,
+        cliente_nombre: cont.clientes.nombre,
+        ok: false,
+        error: rpcErr.message,
+      });
+      continue;
+    }
+    const rpcRes =
+      (rpcData as { cuotas_actualizadas?: number } | null) ?? {};
+
+    // 2) Mandar WA con el template renderizado
+    let waEnviado = false;
+    let waError: string | null = null;
+
+    if (cont.clientes.telefono) {
+      const fechaPrimerCobroIso = `${input.periodo_desde}-${String(cont.dia_cobro ?? 9).padStart(2, "0")}`;
+      const ctx: Record<string, unknown> = {
+        cliente: {
+          nombre: cont.clientes.nombre,
+          empresa: cont.clientes.empresa ?? "",
+        },
+        ajuste: {
+          delta: formatUSD(Math.abs(delta)),
+          mes_aplica: mesAplicaLabel,
+          monto_actual_usd: formatUSD(montoActual),
+          monto_nuevo_usd: formatUSD(montoNuevo),
+          monto_actual_ars:
+            tcOficial && tcOficial > 0
+              ? formatARS(montoActual * tcOficial)
+              : "",
+          monto_nuevo_ars:
+            tcOficial && tcOficial > 0
+              ? formatARS(montoNuevo * tcOficial)
+              : "",
+          tiene_ars_actual: !!(tcOficial && tcOficial > 0),
+          tiene_ars_nuevo: !!(tcOficial && tcOficial > 0),
+          fecha_primer_cobro: formatFechaCorta(fechaPrimerCobroIso),
+        },
+      };
+      const cuerpoFinal = renderTemplate(cuerpoTpl, ctx);
+      const sendRes = await sendWhatsapp({
+        telefono: cont.clientes.telefono,
+        mensaje: cuerpoFinal,
+      });
+      waEnviado = sendRes.ok;
+      waError = sendRes.error ?? null;
+
+      // Audit
+      await supabase.from("mensajes_enviados").insert({
+        cliente_id: cont.cliente_id,
+        cuota_id: null,
+        template_id: "aviso_aumento",
+        telefono_destino:
+          normalizePhone(cont.clientes.telefono) ?? cont.clientes.telefono,
+        cuerpo: cuerpoFinal,
+        estado: sendRes.ok ? "enviado" : "fallido",
+        error: sendRes.error ?? null,
+        evolution_response: (sendRes.payload as object) ?? null,
+      });
+    }
+
+    resultados.push({
+      contrato_id: contratoId,
+      cliente_nombre: cont.clientes.nombre,
+      ok: true,
+      monto_anterior: montoActual,
+      monto_nuevo: montoNuevo,
+      cuotas_actualizadas: Number(rpcRes.cuotas_actualizadas ?? 0),
+      wa_enviado: waEnviado,
+      error: waError ?? undefined,
+    });
+  }
+
+  revalidatePath("/cobros");
+  return { ok: true, data: { resultados } };
+}

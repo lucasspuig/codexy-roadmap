@@ -13,6 +13,7 @@ import {
   PhoneOff,
   Plus,
   Send,
+  TrendingUp,
   Wallet,
   XCircle,
   Zap,
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/Input";
 import { ConfirmDialog, Dialog } from "@/components/admin/Dialog";
 import { NuevoCobroMensualDialog } from "@/components/admin/NuevoCobroMensualDialog";
+import { ComunicarAumentoDialog } from "@/components/admin/ComunicarAumentoDialog";
 import {
   cancelarCuota,
   forzarRecordatorio,
@@ -100,6 +102,7 @@ export function CobrosClient({
   );
   const [busyId, setBusyId] = useState<string | null>(null);
   const [nuevoCobroOpen, setNuevoCobroOpen] = useState(false);
+  const [aumentoOpen, setAumentoOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,14 +190,25 @@ export function CobrosClient({
             Cobros
           </h1>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => setNuevoCobroOpen(true)}
-        >
-          <Plus size={13} />
-          Nuevo cobro mensual
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setAumentoOpen(true)}
+            title="Aplicar aumento de tarifa a un grupo de clientes"
+          >
+            <TrendingUp size={13} />
+            Comunicar aumento
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setNuevoCobroOpen(true)}
+          >
+            <Plus size={13} />
+            Nuevo cobro mensual
+          </Button>
+        </div>
       </div>
       <p className="text-[13px] text-[var(--color-t3)] mb-5 leading-relaxed">
         Calendario de cuotas mensuales. Atrasadas primero, después esta semana
@@ -349,6 +363,15 @@ export function CobrosClient({
         onClose={() => setNuevoCobroOpen(false)}
         onCreated={() => {
           setNuevoCobroOpen(false);
+          router.refresh();
+        }}
+      />
+
+      <ComunicarAumentoDialog
+        open={aumentoOpen}
+        onClose={() => setAumentoOpen(false)}
+        onApplied={() => {
+          // No cerramos el modal — el user ve los resultados y cierra cuando quiera.
           router.refresh();
         }}
       />
